@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import RBSheet from "react-native-raw-bottom-sheet";
 
-
 const ridersData = [
   {
     id: "1",
@@ -112,17 +111,11 @@ const HomeScreen = ({ navigation }) => {
         <TouchableOpacity
           onPress={() => {
             refRBSheet.current.close();
-            navigation.navigate("Verification");
+            navigation.navigate("RiderVerification");
           }}
           style={styles.verifyButton}
         >
           <Text style={styles.buttonText}>Verify Your Information</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => refRBSheet.current.close()}
-          style={styles.closeButton}
-        >
-          <Text style={styles.closeButtonText}>Close</Text>
         </TouchableOpacity>
       </RBSheet>
     </SafeAreaView>
@@ -212,6 +205,7 @@ const styles = {
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 10,
+    textAlign: "center",
   },
   modalText: {
     fontSize: 16,

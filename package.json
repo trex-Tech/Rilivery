@@ -23,6 +23,7 @@
     "react-native": "0.74.5",
     "react-native-elements": "^3.4.3",
     "react-native-gesture-handler": "^2.20.2",
+    "react-native-image-picker": "^7.1.2",
     "react-native-maps": "^1.18.2",
     "react-native-paper": "^5.12.5",
     "react-native-raw-bottom-sheet": "^3.0.0",

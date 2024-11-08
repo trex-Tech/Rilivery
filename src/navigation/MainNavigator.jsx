@@ -8,6 +8,8 @@ import HomeScreen from "../screens/HomeScreen";
 import RegisterScreen from "../screens/RegisterScreen";
 import ChatScreen from "../screens/ChatScreen";
 import ChatsList from "../screens/ChatsList";
+import RiderVerification from "../screens/RiderVerification";
+import RiderHomePage from "../screens/RiderHomePage";
 
 const Stack = createStackNavigator();
 
@@ -47,6 +49,16 @@ const MainNavigator = () => (
       <Stack.Screen
         name="ChatsList"
         component={ChatsList}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="RiderVerification"
+        component={RiderVerification}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="RiderHome"
+        component={RiderHomePage}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
