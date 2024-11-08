@@ -1,5 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   TextInput,
@@ -12,19 +11,59 @@ import {
   KeyboardAvoidingView,
   Platform,
   Linking,
-  Modal, // Import Modal
+  Modal,
+  Animated,
+  PanResponder,
+  ScrollView,
+  TouchableWithoutFeedback,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const ChatScreen = ({ route }) => {
   const { rider } = route.params;
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const [pickupLocation, setPickupLocation] = useState("");
-  const [dropOffLocation, setDropOffLocation] = useState("");
-  const [amountToPay, setAmountToPay] = useState("");
-  const [modalVisible, setModalVisible] = useState(false);
-  const currentUserId = "currentUser";
-  const flatListRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const translateY = useRef(new Animated.Value(300)).current; // Start off-screen
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        return gestureState.dy > 10; // Start dragging if moved down
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        translateY.setValue(gestureState.dy); // Update position
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        if (gestureState.dy > 100) {
+          // If dragged down enough, close the sheet
+          closeBottomSheet();
+        } else {
+          // Otherwise, snap back to original position
+          Animated.spring(translateY, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
+  const openBottomSheet = () => {
+    setIsVisible(true);
+    Animated.spring(translateY, {
+      toValue: 0, // Move to the top
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeBottomSheet = () => {
+    Animated.timing(translateY, {
+      toValue: 300, // Move off-screen
+      duration: 200, // Adjust the duration for a quicker close
+      useNativeDriver: true,
+    }).start(() => setIsVisible(false));
+  };
 
   useEffect(() => {
     const loadChatMessages = async () => {
@@ -44,25 +83,13 @@ const ChatScreen = ({ route }) => {
     loadChatMessages();
   }, [rider]);
 
-  useEffect(() => {
-    // Scroll to the bottom when messages change
-    if (flatListRef.current) {
-      flatListRef.current.scrollToEnd({ animated: true });
-    }
-  }, [messages]);
-
-  useEffect(() => {
-    if (flatListRef.current) {
-      flatListRef.current.scrollToEnd({ animated: true });
-    }
-  }, []);
-
   const handleSendMessage = async () => {
     if (message.trim()) {
       const newMessage = {
         id: messages.length + 1, // Ensure unique ID
         text: message,
-        sender: currentUserId, // Set sender to current user
+        sender: "currentUser", // Set sender to current user
+        timestamp: new Date().toISOString(), // Add timestamp
       };
       const updatedMessages = [...messages, newMessage];
       setMessages(updatedMessages);
@@ -75,12 +102,14 @@ const ChatScreen = ({ route }) => {
         const chatIndex = chats.findIndex((chat) => chat.rider.id === rider.id);
 
         if (chatIndex > -1) {
-          chats[chatIndex].lastMessage = message;
+          chats[chatIndex].lastMessage = message; // Update last message
+          chats[chatIndex].lastMessageTime = new Date().toISOString(); // Update last message time
           chats[chatIndex].messages = updatedMessages;
         } else {
           chats.push({
             rider,
             lastMessage: message,
+            lastMessageTime: new Date().toISOString(), // Set last message time
             messages: updatedMessages,
           });
         }
@@ -93,41 +122,81 @@ const ChatScreen = ({ route }) => {
   };
 
   const handleCallRider = () => {
-    const phoneNumber = rider.phoneNumber;
+    const phoneNumber = rider.phoneNumber; // Assuming rider has a phoneNumber property
     Linking.openURL(`tel:${phoneNumber}`);
   };
 
-  const renderMessage = ({ item }) => {
-    const isCurrentUser = item.sender === currentUserId;
-
-    return (
-      <View
-        style={[
-          styles.messageContainer,
-          isCurrentUser ? styles.currentUserMessage : styles.otherUserMessage,
-        ]}
-      >
-        <Text
-          style={[
-            styles.messageText,
-            { color: isCurrentUser ? "#fff" : "#333" },
-          ]}
-        >
-          {item.text}
-        </Text>
-      </View>
-    );
+  const handleStartErrand = () => {
+    // Logic to start the errand
+    // You can add any necessary actions here
+    closeBottomSheet(); // Close the bottom sheet after starting the errand
   };
 
-  const handleStartErrand = () => {
-    // Logic to start the errand can be added here
-    console.log("Errand started with:", {
-      pickupLocation,
-      dropOffLocation,
-      amountToPay,
-    });
-    // Close the modal after starting the errand
-    setModalVisible(false);
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return "Today";
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return "Yesterday";
+    } else {
+      return date.toLocaleDateString(); // Format as needed
+    }
+  };
+
+  const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }); // Format as "10:30 AM"
+  };
+
+  const renderMessages = () => {
+    const groupedMessages = messages.reduce((acc, message) => {
+      const dateKey = formatDate(message.timestamp);
+      if (!acc[dateKey]) {
+        acc[dateKey] = [];
+      }
+      acc[dateKey].push(message);
+      return acc;
+    }, {});
+
+    return Object.keys(groupedMessages).map((dateKey) => (
+      <View key={dateKey}>
+        <Text style={styles.dateHeader}>{dateKey}</Text>
+        {groupedMessages[dateKey].map((item) => {
+          const isCurrentUser = item.sender === "currentUser"; // Check if the message is from the current user
+          return (
+            <View
+              key={item.id}
+              style={[
+                styles.messageContainer,
+                isCurrentUser
+                  ? styles.currentUserMessage
+                  : styles.otherUserMessage,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.messageText,
+                  { color: isCurrentUser ? "#fff" : "#333" },
+                ]}
+              >
+                {item.text}
+              </Text>
+              <Text style={styles.messageTime}>
+                {formatTime(item.timestamp)}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    ));
   };
 
   return (
@@ -143,13 +212,9 @@ const ChatScreen = ({ route }) => {
             <Text style={styles.callButtonText}>Call</Text>
           </TouchableOpacity>
         </View>
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.messagesList}
-        />
+        <ScrollView style={{ marginHorizontal: 10 }}>
+          {renderMessages()}
+        </ScrollView>
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
@@ -165,56 +230,53 @@ const ChatScreen = ({ route }) => {
           </TouchableOpacity>
         </View>
         <TouchableOpacity
-          style={styles.startErrandButton}
-          onPress={() => setModalVisible(true)} // Open the modal
+          style={[
+            styles.startErrandButton,
+            { marginHorizontal: 10, marginBottom: 10 },
+          ]}
+          onPress={openBottomSheet} // Open the bottom sheet
         >
           <Text style={styles.startErrandButtonText}>Start Errand</Text>
         </TouchableOpacity>
       </SafeAreaView>
 
-      {/* Modal for Errand Details */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)} // Close modal on back press
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Start an Errand</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Pickup Location"
-              value={pickupLocation}
-              onChangeText={setPickupLocation}
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Drop-off Location"
-              value={dropOffLocation}
-              onChangeText={setDropOffLocation}
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Amount to Pay"
-              value={amountToPay}
-              onChangeText={setAmountToPay}
-              keyboardType="numeric"
-            />
-            <TouchableOpacity
-              style={styles.startErrandButton}
-              onPress={handleStartErrand}
+      {/* Draggable Bottom Sheet */}
+      <Modal transparent visible={isVisible} animationType="none">
+        <TouchableWithoutFeedback onPress={closeBottomSheet}>
+          <View style={styles.modalBackground}>
+            <Animated.View
+              style={[styles.bottomSheet, { transform: [{ translateY }] }]}
+              {...panResponder.panHandlers}
             >
-              <Text style={styles.startErrandButtonText}>Start Errand</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setModalVisible(false)} // Close the modal
-            >
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
+              <Text style={styles.sheetTitle}>Start an Errand</Text>
+              <TextInput
+                style={styles.bottomSheetInput}
+                placeholder="Pickup Location"
+              />
+              <TextInput
+                style={styles.bottomSheetInput}
+                placeholder="Drop-off Location"
+              />
+              <TextInput
+                style={styles.bottomSheetInput}
+                placeholder="Amount to Pay"
+                keyboardType="numeric"
+              />
+              <TouchableOpacity
+                style={styles.startErrandButton}
+                onPress={handleStartErrand} // Start errand logic here
+              >
+                <Text style={styles.startErrandButtonText}>Start Errand</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={closeBottomSheet} // Close the bottom sheet
+              >
+                <Text style={styles.buttonText}>Close</Text>
+              </TouchableOpacity>
+            </Animated.View>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </KeyboardAvoidingView>
   );
@@ -300,53 +362,61 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   startErrandButton: {
-    backgroundColor: "#28a745", // Green color for start errand button
+    backgroundColor: "#28a745",
     padding: 15,
     borderRadius: 5,
     alignItems: "center",
     marginTop: 10,
-    marginHorizontal: 10,
-    marginBottom: 10,
   },
   startErrandButtonText: {
     color: "#ffffff",
     fontWeight: "bold",
   },
-  modalContainer: {
+  modalBackground: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
-  modalContent: {
-    width: "80%",
+  bottomSheet: {
+    height: 300,
     backgroundColor: "#ffffff",
-    borderRadius: 10,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     padding: 20,
-    alignItems: "center",
   },
-  modalTitle: {
-    fontSize: 20,
+  sheetTitle: {
+    fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 20,
   },
-  modalInput: {
+  bottomSheetInput: {
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 5,
     padding: 10,
     marginBottom: 15,
-    width: "100%",
   },
   closeButton: {
-    marginTop: 10,
-    backgroundColor: "#FF4D4D", // Red color for close button
-    padding: 10,
+    marginTop: 20,
+    backgroundColor: "#FF4D4D",
+    padding: 15,
     borderRadius: 5,
   },
-  closeButtonText: {
+  buttonText: {
     color: "#ffffff",
     fontWeight: "bold",
+  },
+  dateHeader: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginVertical: 10,
+    textAlign: "center",
+    color: "#888",
+  },
+  messageTime: {
+    fontSize: 12,
+    color: "#333",
+    marginTop: 5,
+    textAlign: "right",
   },
 });
 

@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  SafeAreaView,
 } from "react-native";
 import moment from "moment";
 import { useFocusEffect } from "@react-navigation/native";
@@ -76,17 +77,21 @@ const ChatsList = ({ navigation }) => {
     >
       <Image source={{ uri: item.rider.image }} style={styles.chatImage} />
       <View style={styles.chatDetails}>
-        <Text style={styles.chatName}>{item.rider?.name}</Text>
-        <Text style={styles.lastMessage}>{item.lastMessage}</Text>
+        <View>
+          <Text style={{ fontSize: 18, fontWeight: 700 }}>
+            {item.rider?.name}
+          </Text>
+          <Text style={styles.lastMessage}>{item.lastMessage}</Text>
+        </View>
         <Text style={styles.lastMessageTime}>
-          {moment(item.lastMessageTime).format("hh:mm A")}
+          {moment(item.lastMessageTime).fromNow()} {/* Display relative time */}
         </Text>
       </View>
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Recent Chats</Text>
       {chats.length > 0 ? (
         <FlatList
@@ -108,7 +113,7 @@ const ChatsList = ({ navigation }) => {
           <Text style={styles.deleteButtonText}>Clear Chat History</Text>
         </TouchableOpacity>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -159,10 +164,13 @@ const styles = StyleSheet.create({
   },
   chatDetails: {
     flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-between"
   },
   lastMessageTime: {
     fontSize: 12,
     color: "#999",
+    alignSelf: "flex-end"
   },
   deleteButton: {
     backgroundColor: "#ccc", // Red color for delete button
