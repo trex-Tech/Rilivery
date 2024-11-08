@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "rilivery",
-    "slug": "rilivery",
+    "name": "Rilivery",
+    "slug": "Rilivery",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -12,16 +12,29 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kelliebrighty.rilivery"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.kelliebrighty.rilivery"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5130cbe6-1c5f-4ccf-8413-bfd56fc5560d"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/5130cbe6-1c5f-4ccf-8413-bfd56fc5560d"
     }
   }
 }
