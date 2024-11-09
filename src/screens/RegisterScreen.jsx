@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import {
   View,
   TextInput,
@@ -6,23 +6,68 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
+  Alert,
 } from "react-native";
+import LoadingButton from "../components/Button";
+import { RegisterUser } from "../../services/Auth.service";
+import axios from "axios";
+import { BASE_URL } from "../../config";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { GlobalContext } from "../context";
 
 const RegisterScreen = ({ navigation }) => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { setIsAuthenticated } = useContext(GlobalContext);
 
-  const handleRegister = () => {
-    // Placeholder for backend registration endpoint
-    console.log("User registered:", {
-      firstName,
-      lastName,
-      phoneNumber,
-      password,
-    });
-    navigation.navigate("Home"); // Navigate to Home after registration
+  const [errors, setErrors] = useState({}); // State to hold error messages
+
+  const validateInputs = () => {
+    const newErrors = {};
+    if (!firstName) newErrors.firstName = "First name is required.";
+    if (!lastName) newErrors.lastName = "Last name is required.";
+    if (!phoneNumber) newErrors.phoneNumber = "Phone number is required.";
+    if (!password) newErrors.password = "Password is required.";
+    else if (password.length < 6)
+      newErrors.password = "Password must be at least 6 characters long.";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0; // Return true if no errors
+  };
+
+  const handleRegister = async () => {
+    setLoading(true);
+    if (validateInputs()) {
+      try {
+        const res = await RegisterUser(
+          phoneNumber,
+          firstName,
+          lastName,
+          password
+        );
+        if (res.data.status === "success") {
+          setLoading(false);
+          setIsAuthenticated(true);
+          AsyncStorage.setItem("access_token", res.data.data.access);
+
+          console.log("Token saved::", res.data.data.access);
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        setLoading(false);
+      }
+    } else {
+      Alert.alert(
+        "Registration Failed",
+        "Please fix the errors and try again."
+      );
+      setLoading(false);
+      return;
+    }
   };
 
   return (
@@ -35,32 +80,58 @@ const RegisterScreen = ({ navigation }) => {
       <TextInput
         style={styles.input}
         value={firstName}
-        onChangeText={setFirstName}
+        onChangeText={(text) => {
+          setFirstName(text);
+          setErrors((prev) => ({ ...prev, firstName: null }));
+        }}
         placeholder="First Name"
       />
+      {errors.lastName && (
+        <Text style={styles.errorText}>{errors.firstName}</Text>
+      )}
       <TextInput
         style={styles.input}
         value={lastName}
-        onChangeText={setLastName}
+        onChangeText={(text) => {
+          setLastName(text);
+          setErrors((prev) => ({ ...prev, lastName: null }));
+        }}
         placeholder="Last Name"
       />
+      {errors.lastName && (
+        <Text style={styles.errorText}>{errors.lastName}</Text>
+      )}
       <TextInput
         style={styles.input}
         value={phoneNumber}
-        onChangeText={setPhoneNumber}
+        onChangeText={(text) => {
+          setPhoneNumber(text);
+          setErrors((prev) => ({ ...prev, phoneNumber: null }));
+        }}
         placeholder="Phone Number"
         keyboardType="phone-pad"
       />
+      {errors.phoneNumber && (
+        <Text style={styles.errorText}>{errors.phoneNumber}</Text>
+      )}
       <TextInput
         style={styles.input}
         value={password}
-        onChangeText={setPassword}
+        onChangeText={(text) => {
+          setPassword(text);
+          setErrors((prev) => ({ ...prev, password: null }));
+        }}
         placeholder="Password"
         secureTextEntry
       />
-      <TouchableOpacity style={styles.button} onPress={handleRegister}>
-        <Text style={styles.buttonText}>Register</Text>
-      </TouchableOpacity>
+      {errors.password && (
+        <Text style={styles.errorText}>{errors.password}</Text>
+      )}
+      <LoadingButton
+        title={"Register"}
+        onPress={handleRegister}
+        loading={loading}
+      />
       <Text style={styles.loginText}>
         Already have an account?
         <Text
@@ -123,6 +194,12 @@ const styles = StyleSheet.create({
   loginLink: {
     color: "#007BFF",
     fontWeight: "bold",
+  },
+  errorText: {
+    color: "#ff0000",
+    marginBottom: 10,
+    fontSize: 14,
+    textAlign: "left",
   },
 });
 

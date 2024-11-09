@@ -1,4 +1,5 @@
-import React, { useRef } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useContext, useRef } from "react";
 import {
   View,
   Text,
@@ -9,6 +10,7 @@ import {
   Image,
 } from "react-native";
 import RBSheet from "react-native-raw-bottom-sheet";
+import { GlobalContext } from "../context";
 
 const ridersData = [
   {
@@ -42,6 +44,7 @@ const ridersData = [
 ];
 
 const HomeScreen = ({ navigation }) => {
+  const { setIsAuthenticated } = useContext(GlobalContext);
   const refRBSheet = useRef();
 
   const renderRider = ({ item }) => (
@@ -88,6 +91,16 @@ const HomeScreen = ({ navigation }) => {
           <Text style={styles.buttonText}>View Chats</Text>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={() => {
+          AsyncStorage.removeItem("access_token");
+          setIsAuthenticated(false);
+        }}
+      >
+        <Text style={styles.deleteButtonText}>Logout</Text>
+      </TouchableOpacity>
 
       {/* Collapsible Modal for Becoming a Rider */}
       <RBSheet
@@ -224,6 +237,17 @@ const styles = {
   },
   closeButtonText: {
     color: "#007BFF",
+    fontWeight: "bold",
+  },
+  deleteButton: {
+    backgroundColor: "#ccc",
+    padding: 15,
+    borderRadius: 5,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  deleteButtonText: {
+    color: "#ffffff",
     fontWeight: "bold",
   },
 };

@@ -1,0 +1,1 @@
+export const BASE_URL = "https://relivery.trextechies.com/api/v1"
