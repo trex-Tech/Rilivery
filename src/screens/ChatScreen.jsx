@@ -122,8 +122,9 @@ const ChatScreen = ({ route }) => {
   };
 
   const handleCallRider = () => {
-    const phoneNumber = rider.phoneNumber; // Assuming rider has a phoneNumber property
-    Linking.openURL(`tel:${phoneNumber}`);
+    const phone_number = rider.phone_number;
+    // console.log("phone:::", phone_number);
+    Linking.openURL(`tel:${phone_number}`);
   };
 
   const handleStartErrand = () => {
@@ -206,8 +207,10 @@ const ChatScreen = ({ route }) => {
     >
       <SafeAreaView style={styles.innerContainer}>
         <View style={styles.header}>
-          <Image source={{ uri: rider.image }} style={styles.riderImage} />
-          <Text style={styles.riderName}>{rider.name}</Text>
+          <Image source={{ uri: rider.selfie }} style={styles.riderImage} />
+          <Text style={styles.riderName}>
+            {rider.first_name} {rider.last_name}
+          </Text>
           <TouchableOpacity style={styles.callButton} onPress={handleCallRider}>
             <Text style={styles.callButtonText}>Call</Text>
           </TouchableOpacity>

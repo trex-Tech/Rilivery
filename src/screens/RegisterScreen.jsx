@@ -41,9 +41,12 @@ const RegisterScreen = ({ navigation }) => {
   const handleRegister = async () => {
     setLoading(true);
     if (validateInputs()) {
+      const formattedPhoneNumber = phoneNumber.startsWith("+234")
+        ? phoneNumber
+        : `+234${phoneNumber}`;
       try {
         const res = await RegisterUser(
-          phoneNumber,
+          formattedPhoneNumber,
           firstName,
           lastName,
           password
@@ -53,7 +56,7 @@ const RegisterScreen = ({ navigation }) => {
           setIsAuthenticated(true);
           AsyncStorage.setItem("access_token", res.data.data.access);
 
-          console.log("Token saved::", res.data.data.access);
+          // console.log("Token saved::", res.data.data.access);
         } else {
           setLoading(false);
         }

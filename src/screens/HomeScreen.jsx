@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useContext, useRef } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,9 @@ import {
 } from "react-native";
 import RBSheet from "react-native-raw-bottom-sheet";
 import { GlobalContext } from "../context";
+import { FetchAllOnlineRiders } from "../../services/User.service";
+import { ActivityIndicator } from "react-native-paper";
+import { ScrollView } from "react-native-gesture-handler";
 
 const ridersData = [
   {
@@ -46,20 +49,41 @@ const ridersData = [
 const HomeScreen = ({ navigation }) => {
   const { setIsAuthenticated } = useContext(GlobalContext);
   const refRBSheet = useRef();
+  const [riders, setRiders] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchRiders = async () => {
+    setLoading(true);
+
+    const res = await FetchAllOnlineRiders();
+
+    if (res.data.status === "success") {
+      // console.log("Riders:::", res.data.data);
+      setRiders(res.data.data.riders);
+      setLoading(false);
+    }
+  };
+
+  const renderLoadingIndicator = () => (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color="#007BFF" />
+    </View>
+  );
+
+  useEffect(() => {
+    fetchRiders();
+  }, []);
 
   const renderRider = ({ item }) => (
     <TouchableOpacity
       style={styles.riderCard}
       onPress={() => navigation.navigate("Chat", { rider: item })} // Pass the entire rider object
     >
-      <Image source={{ uri: item.image }} style={styles.riderImage} />
-      <Text style={styles.riderName}>{item.name}</Text>
-      <View
-        style={[
-          styles.statusIndicator,
-          item.status === "online" ? styles.online : styles.offline,
-        ]}
-      />
+      <Image source={{ uri: item.selfie }} style={styles.riderImage} />
+      <Text style={styles.riderName}>
+        {item.first_name} {item.last_name}
+      </Text>
+      <View style={[styles.statusIndicator, styles.online]} />
     </TouchableOpacity>
   );
 
@@ -71,36 +95,40 @@ const HomeScreen = ({ navigation }) => {
         Choose a rider to start a chat and arrange your delivery.
       </Text>
       <FlatList
-        data={ridersData}
-        renderItem={renderRider}
+        data={loading ? [] : riders} // Show an empty array if loading
+        renderItem={loading ? renderLoadingIndicator : renderRider} // Render loading indicator or riders
         keyExtractor={(item) => item.id}
-        numColumns={2} // Display riders in a grid
+        numColumns={3}
         contentContainerStyle={styles.grid}
+        ListEmptyComponent={
+          loading ? <ActivityIndicator size="large" color="#007BFF" /> : null
+        } // Show loading indicator when data is empty
       />
-      <View style={styles.buttonContainer}>
+      <View>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={styles.becomeRiderButton}
+            onPress={() => refRBSheet.current.open()}
+          >
+            <Text style={styles.buttonText}>Become a Rider</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.chatsButton}
+            onPress={() => navigation.navigate("ChatsList")}
+          >
+            <Text style={styles.buttonText}>View Chats</Text>
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity
-          style={styles.becomeRiderButton}
-          onPress={() => refRBSheet.current.open()}
+          style={styles.deleteButton}
+          onPress={() => {
+            AsyncStorage.removeItem("access_token");
+            setIsAuthenticated(false);
+          }}
         >
-          <Text style={styles.buttonText}>Become a Rider</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.chatsButton}
-          onPress={() => navigation.navigate("ChatsList")}
-        >
-          <Text style={styles.buttonText}>View Chats</Text>
+          <Text style={styles.deleteButtonText}>Logout</Text>
         </TouchableOpacity>
       </View>
-
-      <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={() => {
-          AsyncStorage.removeItem("access_token");
-          setIsAuthenticated(false);
-        }}
-      >
-        <Text style={styles.deleteButtonText}>Logout</Text>
-      </TouchableOpacity>
 
       {/* Collapsible Modal for Becoming a Rider */}
       <RBSheet
@@ -141,6 +169,10 @@ const styles = {
     paddingTop: 20,
     padding: 20,
     backgroundColor: "#ffffff",
+  },
+  contentContainer: {
+    flexGrow: 1,
+    paddingBottom: 80, // Add padding to avoid overlap with buttons
   },
   title: {
     fontSize: 24,
@@ -191,7 +223,6 @@ const styles = {
   buttonContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 20,
   },
   becomeRiderButton: {
     flex: 2, // Take more space
@@ -249,6 +280,11 @@ const styles = {
   deleteButtonText: {
     color: "#ffffff",
     fontWeight: "bold",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 };
 

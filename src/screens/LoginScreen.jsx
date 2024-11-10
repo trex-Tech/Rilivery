@@ -34,16 +34,20 @@ const LoginScreen = ({ navigation }) => {
   const handleLogin = async () => {
     setLoading(true);
     if (validateInputs()) {
-      console.log("data:::", phoneNumber, password);
+      const formattedPhoneNumber = phoneNumber.startsWith("+234")
+        ? phoneNumber
+        : `+234${phoneNumber}`;
+
+      console.log("data:::", formattedPhoneNumber, password);
       try {
         const res = await LoginUser(phoneNumber, password);
         console.log("login res:::", res.data);
         if (res.data.status === "success") {
           setLoading(false);
           setIsAuthenticated(true);
-          AsyncStorage.setItem("access_token", res.data.data.access);
+          await AsyncStorage.setItem("access_token", res.data.data.access);
 
-          console.log("Token saved::", res.data.data.access);
+          // console.log("Token saved::", res.data.data.access);
         } else {
           setLoading(false);
         }
