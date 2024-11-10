@@ -18,7 +18,7 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({}); // State to hold error messages
   const [loading, setLoading] = useState(false);
-  const { setIsAuthenticated } = useContext(GlobalContext);
+  const { setIsAuthenticated, setUserType } = useContext(GlobalContext);
 
   const validateInputs = () => {
     const newErrors = {};
@@ -40,11 +40,12 @@ const LoginScreen = ({ navigation }) => {
 
       console.log("data:::", formattedPhoneNumber, password);
       try {
-        const res = await LoginUser(phoneNumber, password);
+        const res = await LoginUser(formattedPhoneNumber, password);
         console.log("login res:::", res.data);
         if (res.data.status === "success") {
           setLoading(false);
           setIsAuthenticated(true);
+          setUserType(res.data.data.user_type);
           await AsyncStorage.setItem("access_token", res.data.data.access);
 
           // console.log("Token saved::", res.data.data.access);

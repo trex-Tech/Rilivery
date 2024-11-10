@@ -8,12 +8,14 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
+  Platform,
 } from "react-native";
 import RBSheet from "react-native-raw-bottom-sheet";
 import { GlobalContext } from "../context";
 import { FetchAllOnlineRiders } from "../../services/User.service";
 import { ActivityIndicator } from "react-native-paper";
 import { ScrollView } from "react-native-gesture-handler";
+import { Logout } from "../../services/Auth.service";
 
 const ridersData = [
   {
@@ -47,7 +49,7 @@ const ridersData = [
 ];
 
 const HomeScreen = ({ navigation }) => {
-  const { setIsAuthenticated } = useContext(GlobalContext);
+  const { setIsAuthenticated, setUserType } = useContext(GlobalContext);
   const refRBSheet = useRef();
   const [riders, setRiders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -104,7 +106,7 @@ const HomeScreen = ({ navigation }) => {
           loading ? <ActivityIndicator size="large" color="#007BFF" /> : null
         } // Show loading indicator when data is empty
       />
-      <View>
+      <View style={{ marginHorizontal: Platform.OS === "ios" ? 20 : 0 }}>
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.becomeRiderButton}
@@ -124,6 +126,7 @@ const HomeScreen = ({ navigation }) => {
           onPress={() => {
             AsyncStorage.removeItem("access_token");
             setIsAuthenticated(false);
+            setUserType("User");
           }}
         >
           <Text style={styles.deleteButtonText}>Logout</Text>

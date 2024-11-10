@@ -5,11 +5,12 @@ export const GlobalContext = createContext();
 
 export const GlobalProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userType, setUserType] = useState("User");
 
   const getAccessToken = async () => {
     const access_token = await AsyncStorage.getItem("access_token");
 
-    console.log("Access_token:::", access_token);
+    // console.log("Access_token:::", access_token);
     if (access_token) {
       setIsAuthenticated(true);
     } else {
@@ -23,7 +24,9 @@ export const GlobalProvider = ({ children }) => {
   }, []);
 
   return (
-    <GlobalContext.Provider value={{ isAuthenticated, setIsAuthenticated }}>
+    <GlobalContext.Provider
+      value={{ isAuthenticated, setIsAuthenticated, userType, setUserType }}
+    >
       {children}
     </GlobalContext.Provider>
   );

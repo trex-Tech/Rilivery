@@ -67,9 +67,23 @@ const AuthenticatedNavigator = () => {
           component={RiderVerification}
           options={{ headerShown: false }}
         />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+};
+
+const RiderNavigator = () => {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator>
         <Stack.Screen
           name="RiderHome"
           component={RiderHomePage}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Chat"
+          component={ChatScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>
@@ -78,9 +92,21 @@ const AuthenticatedNavigator = () => {
 };
 
 const MainNavigator = () => {
-  const { isAuthenticated } = useContext(GlobalContext);
+  const { isAuthenticated, userType } = useContext(GlobalContext);
   return (
-    <>{isAuthenticated ? <AuthenticatedNavigator /> : <UnAuthNavigator />}</>
+    <>
+      {isAuthenticated ? (
+        <>
+          {userType === "User" ? (
+            <AuthenticatedNavigator />
+          ) : (
+            <RiderNavigator />
+          )}
+        </>
+      ) : (
+        <UnAuthNavigator />
+      )}
+    </>
   );
 };
 

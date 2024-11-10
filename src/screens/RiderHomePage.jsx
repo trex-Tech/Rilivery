@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,11 +7,18 @@ import {
   SafeAreaView,
   FlatList,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import AntDesign from "@expo/vector-icons/AntDesign";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
+import { Logout } from "../../services/Auth.service";
+import { GlobalContext } from "../context";
 
 const RiderHomePage = () => {
   const [activeTab, setActiveTab] = useState("availableErrands"); // Default tab
+
+  const { setIsAuthenticated, setUserType } = useContext(GlobalContext);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -41,19 +48,29 @@ const RiderHomePage = () => {
           style={styles.footerButton}
           onPress={() => setActiveTab("availableErrands")}
         >
-          <Text style={styles.footerButtonText}>Available Errands</Text>
+          <AntDesign name="shoppingcart" size={24} color="black" />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.footerButton}
           onPress={() => setActiveTab("messages")}
         >
-          <Text style={styles.footerButtonText}>Messages</Text>
+          <AntDesign name="message1" size={24} color="black" />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.footerButton}
           onPress={() => setActiveTab("earnings")}
         >
-          <Text style={styles.footerButtonText}>Earnings</Text>
+          <FontAwesome6 name="sack-dollar" size={24} color="black" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.footerButton}
+          onPress={() => {
+            AsyncStorage.removeItem("access_token");
+            setIsAuthenticated(false);
+            setUserType("User");
+          }}
+        >
+          <AntDesign name="logout" size={24} color="black" />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -62,29 +79,30 @@ const RiderHomePage = () => {
 
 // Example components for each tab
 const AvailableErrands = () => {
+  const [loading, setLoading] = useState(false);
   const errands = [
-    {
-      id: "1",
-      title: "Grocery Delivery",
-      description:
-        "Pick up groceries from the store and deliver to the customer.",
-      distance: "2.5 km",
-      image: "https://example.com/grocery.jpg", // Placeholder image URL
-    },
-    {
-      id: "2",
-      title: "Package Drop-off",
-      description: "Drop off a package at the post office.",
-      distance: "1.2 km",
-      image: "https://example.com/package.jpg", // Placeholder image URL
-    },
-    {
-      id: "3",
-      title: "Food Delivery",
-      description: "Deliver food from the restaurant to the customer.",
-      distance: "3.0 km",
-      image: "https://example.com/food.jpg", // Placeholder image URL
-    },
+    // {
+    //   id: "1",
+    //   title: "Grocery Delivery",
+    //   description:
+    //     "Pick up groceries from the store and deliver to the customer.",
+    //   distance: "2.5 km",
+    //   image: "https://example.com/grocery.jpg", // Placeholder image URL
+    // },
+    // {
+    //   id: "2",
+    //   title: "Package Drop-off",
+    //   description: "Drop off a package at the post office.",
+    //   distance: "1.2 km",
+    //   image: "https://example.com/package.jpg", // Placeholder image URL
+    // },
+    // {
+    //   id: "3",
+    //   title: "Food Delivery",
+    //   description: "Deliver food from the restaurant to the customer.",
+    //   distance: "3.0 km",
+    //   image: "https://example.com/food.jpg", // Placeholder image URL
+    // },
   ];
 
   const renderErrandItem = ({ item }) => (
@@ -104,6 +122,18 @@ const AvailableErrands = () => {
     </TouchableOpacity>
   );
 
+  const EmptyErrands = () => {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>No Available Errands</Text>
+        <Text style={styles.message}>
+          It looks like there are no errands available at the moment. Please
+          check back later!
+        </Text>
+      </View>
+    );
+  };
+
   const handleAcceptErrand = (errand) => {
     // Logic to accept the errand
     console.log("Accepted errand:", errand);
@@ -112,12 +142,18 @@ const AvailableErrands = () => {
   return (
     <View style={{ width: "100%" }}>
       <Text style={styles.title}>Available Errands</Text>
-      <FlatList
-        data={errands}
-        renderItem={renderErrandItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.errandList}
-      />
+      {loading ? (
+        <ActivityIndicator size="large" color="#007BFF" />
+      ) : errands.length === 0 ? (
+        <EmptyErrands />
+      ) : (
+        <FlatList
+          data={errands}
+          renderItem={renderErrandItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.errandList}
+        />
+      )}
     </View>
   );
 };
@@ -242,7 +278,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 20,
-    textAlign: "center"
+    textAlign: "center",
   },
   errandList: {
     paddingBottom: 20,

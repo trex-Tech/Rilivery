@@ -1,4 +1,7 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../utils/axios.config";
+import { useContext } from "react";
+import { GlobalContext } from "../src/context";
 
 export const RegisterUser = async (
   phone_number,
@@ -24,9 +27,14 @@ export const LoginUser = async (phone_number, password) => {
     password: password,
   };
 
-  console.log("Login data:::", data);
-
   const res = await api.post("/auth/login/", data);
 
   return res;
+};
+
+export const Logout = () => {
+  const { setIsAuthenticated } = useContext(GlobalContext);
+
+  AsyncStorage.removeItem("access_token");
+  setIsAuthenticated(false);
 };

@@ -2,16 +2,20 @@ import React from "react";
 import {
   TouchableOpacity,
   Text,
-  StyleSheet,
   ActivityIndicator,
+  StyleSheet,
 } from "react-native";
 
-const LoadingButton = ({ onPress, title, loading }) => {
+const LoadingButton = ({ onPress, title, loading, disabled }) => {
   return (
     <TouchableOpacity
-      style={[styles.button, loading && styles.buttonDisabled]}
-      onPress={loading ? null : onPress}
-      disabled={loading}
+      style={[
+        styles.button,
+        loading && styles.buttonDisabled,
+        disabled && styles.buttonDisabled,
+      ]}
+      onPress={loading || disabled ? null : onPress}
+      disabled={loading || disabled}
     >
       {loading ? (
         <ActivityIndicator size="small" color="#ffffff" />
@@ -32,7 +36,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   buttonDisabled: {
-    backgroundColor: "#cccccc", // Change color when disabled
+    backgroundColor: "#cccccc",
   },
   buttonText: {
     color: "#ffffff",

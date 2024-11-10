@@ -36,6 +36,16 @@
       "eas": {
         "projectId": "5c088bfb-810c-4d1e-a21f-3fc87f8709d5"
       }
-    }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Rilivery to access your camera",
+          "microphonePermission": "Allow Rilivery to access your microphone",
+          "recordAudioAndroid": true
+        }
+      ]
+    ]
   }
 }
