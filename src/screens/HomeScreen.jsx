@@ -14,7 +14,7 @@ import RBSheet from "react-native-raw-bottom-sheet";
 import { GlobalContext } from "../context";
 import { FetchAllOnlineRiders } from "../../services/User.service";
 import { ActivityIndicator } from "react-native-paper";
-import { ScrollView } from "react-native-gesture-handler";
+import { RefreshControl, ScrollView } from "react-native-gesture-handler";
 import { Logout } from "../../services/Auth.service";
 
 const ridersData = [
@@ -53,6 +53,13 @@ const HomeScreen = ({ navigation }) => {
   const refRBSheet = useRef();
   const [riders, setRiders] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchRiders();
+    setRefreshing(false);
+  };
 
   const fetchRiders = async () => {
     setLoading(true);
@@ -104,7 +111,10 @@ const HomeScreen = ({ navigation }) => {
         contentContainerStyle={styles.grid}
         ListEmptyComponent={
           loading ? <ActivityIndicator size="large" color="#007BFF" /> : null
-        } // Show loading indicator when data is empty
+        }
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       />
       <View style={{ marginHorizontal: Platform.OS === "ios" ? 20 : 0 }}>
         <View style={styles.buttonContainer}>
@@ -118,7 +128,7 @@ const HomeScreen = ({ navigation }) => {
             style={styles.chatsButton}
             onPress={() => navigation.navigate("ChatsList")}
           >
-            <Text style={styles.buttonText}>View Chats</Text>
+            <Text style={styles.buttonText}>My Errands</Text>
           </TouchableOpacity>
         </View>
         <TouchableOpacity

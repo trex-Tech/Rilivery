@@ -63,32 +63,36 @@ const ChatsList = ({ navigation }) => {
 
   const renderEmptyChatList = () => (
     <View style={styles.emptyContainer}>
-      <Text style={styles.emptyText}>No Chats Available</Text>
+      <Text style={styles.emptyText}>No Errands Available</Text>
       <Text style={styles.emptySubText}>
-        Start a conversation to see your chats here.
+        Start an errand to see your Errands here.
       </Text>
     </View>
   );
 
-  const renderChatItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.chatItem}
-      onPress={() => handleChatPress(item)}
-    >
-      <Image source={{ uri: item.rider.image }} style={styles.chatImage} />
-      <View style={styles.chatDetails}>
-        <View>
-          <Text style={{ fontSize: 18, fontWeight: 700 }}>
-            {item.rider?.name}
+  const renderChatItem = ({ item }) => {
+    console.log(item);
+    return (
+      <TouchableOpacity
+        style={styles.chatItem}
+        onPress={() => handleChatPress(item)}
+      >
+        <Image source={{ uri: item.rider.selfie }} style={styles.chatImage} />
+        <View style={styles.chatDetails}>
+          <View>
+            <Text style={{ fontSize: 18, fontWeight: 700 }}>
+              {item.rider?.first_name} {item.rider?.last_name}
+            </Text>
+            <Text style={styles.lastMessage}>{item.messages[0].text}</Text>
+          </View>
+          <Text style={styles.lastMessageTime}>
+            {moment(item.lastMessageTime).fromNow()}{" "}
+            {/* Display relative time */}
           </Text>
-          <Text style={styles.lastMessage}>{item.lastMessage}</Text>
         </View>
-        <Text style={styles.lastMessageTime}>
-          {moment(item.lastMessageTime).fromNow()} {/* Display relative time */}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -165,12 +169,12 @@ const styles = StyleSheet.create({
   chatDetails: {
     flex: 1,
     flexDirection: "row",
-    justifyContent: "space-between"
+    justifyContent: "space-between",
   },
   lastMessageTime: {
     fontSize: 12,
     color: "#999",
-    alignSelf: "flex-end"
+    alignSelf: "flex-end",
   },
   deleteButton: {
     backgroundColor: "#ccc", // Red color for delete button

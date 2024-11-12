@@ -10,3 +10,9 @@ export const VerifyMe = async (selfie, drivers_license) => {
 
   return res;
 };
+
+export const ToggleAvailability = async () => {
+  const res = await api.post("/rider/online-status/");
+
+  return res;
+};

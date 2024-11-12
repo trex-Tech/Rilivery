@@ -7,18 +7,44 @@ import {
   SafeAreaView,
   FlatList,
   Image,
-  ActivityIndicator,
+  Switch,
+  Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { Logout } from "../../services/Auth.service";
 import { GlobalContext } from "../context";
+import ScrollableContainer from "../components/ScrollableContainer";
+import { ToggleAvailability } from "../../services/Rider.service";
 
 const RiderHomePage = () => {
   const [activeTab, setActiveTab] = useState("availableErrands"); // Default tab
-
+  const [ErrandListRefresh, setErrandListRefresh] = useState(false);
+  const [verifiedRefresh, setVerifiedRefresh] = useState(false);
   const { setIsAuthenticated, setUserType } = useContext(GlobalContext);
+  const [verified, setVerified] = useState(false);
+  const [isAvailable, setIsAvailable] = useState(false);
+
+  const onErrandListRefresh = async () => {
+    setErrandListRefresh(true);
+    setErrandListRefresh(false);
+  };
+
+  const onVerifiedRefresh = async () => {
+    setVerifiedRefresh(true);
+    setVerifiedRefresh(false);
+  };
+
+  const toggleAvailability = async () => {
+    const currentAvailability = isAvailable;
+
+    const result = await ToggleAvailability();
+
+    if (result.data) {
+      setIsAvailable(!currentAvailability);
+    }
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -26,8 +52,6 @@ const RiderHomePage = () => {
         return <AvailableErrands />;
       case "messages":
         return <Messages />;
-      case "earnings":
-        return <Earnings />;
       default:
         return null;
     }
@@ -35,33 +59,53 @@ const RiderHomePage = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.verificationContainer}>
-        <Text style={styles.verificationText}>
-          Awaiting verification from the admin. Please check back later.
-        </Text>
-      </View>
-
-      <View style={styles.contentContainer}>{renderContent()}</View>
+      {verified ? (
+        <ScrollableContainer
+          refreshing={ErrandListRefresh}
+          onRefresh={onErrandListRefresh}
+        >
+          <View style={styles.headerContainer}>
+            <Text style={styles.availabilityText}>
+              {isAvailable ? "Online" : "Offline"}
+            </Text>
+            <Switch
+              value={isAvailable}
+              onValueChange={toggleAvailability}
+              trackColor={{ false: "#767577", true: "#007BFF" }}
+              thumbColor={isAvailable ? "#fff" : "#f4f3f4"}
+              style={styles.switch}
+            />
+          </View>
+          <View style={styles.contentContainer}>{renderContent()}</View>
+        </ScrollableContainer>
+      ) : (
+        <ScrollableContainer
+          refreshing={verifiedRefresh}
+          onRefresh={onVerifiedRefresh}
+        >
+          <View style={styles.verificationContainer}>
+            <Text style={styles.verificationText}>
+              Awaiting verification from the admin. Please refresh this page in
+              1 hour to check for updates on your Verification.
+            </Text>
+          </View>
+        </ScrollableContainer>
+      )}
 
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.footerButton}
           onPress={() => setActiveTab("availableErrands")}
         >
-          <AntDesign name="shoppingcart" size={24} color="black" />
+          <AntDesign name="shoppingcart" size={24} color="white" />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.footerButton}
           onPress={() => setActiveTab("messages")}
         >
-          <AntDesign name="message1" size={24} color="black" />
+          <AntDesign name="message1" size={24} color="white" />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.footerButton}
-          onPress={() => setActiveTab("earnings")}
-        >
-          <FontAwesome6 name="sack-dollar" size={24} color="black" />
-        </TouchableOpacity>
+
         <TouchableOpacity
           style={styles.footerButton}
           onPress={() => {
@@ -70,7 +114,7 @@ const RiderHomePage = () => {
             setUserType("User");
           }}
         >
-          <AntDesign name="logout" size={24} color="black" />
+          <AntDesign name="logout" size={24} color="white" />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -124,9 +168,9 @@ const AvailableErrands = () => {
 
   const EmptyErrands = () => {
     return (
-      <View style={styles.container}>
+      <View style={{}}>
         <Text style={styles.title}>No Available Errands</Text>
-        <Text style={styles.message}>
+        <Text style={{ textAlign: "center" }}>
           It looks like there are no errands available at the moment. Please
           check back later!
         </Text>
@@ -141,10 +185,7 @@ const AvailableErrands = () => {
 
   return (
     <View style={{ width: "100%" }}>
-      <Text style={styles.title}>Available Errands</Text>
-      {loading ? (
-        <ActivityIndicator size="large" color="#007BFF" />
-      ) : errands.length === 0 ? (
+      {errands.length === 0 ? (
         <EmptyErrands />
       ) : (
         <FlatList
@@ -161,20 +202,20 @@ const AvailableErrands = () => {
 const Messages = () => {
   const [chats, setChats] = useState([]);
 
-  useEffect(() => {
-    const loadChats = async () => {
-      try {
-        const storedChats = await AsyncStorage.getItem("chats");
-        if (storedChats) {
-          setChats(JSON.parse(storedChats));
-        }
-      } catch (error) {
-        console.error("Failed to load chats:", error);
-      }
-    };
+  // useEffect(() => {
+  //   const loadChats = async () => {
+  //     try {
+  //       const storedChats = await AsyncStorage.getItem("chats");
+  //       if (storedChats) {
+  //         setChats(JSON.parse(storedChats));
+  //       }
+  //     } catch (error) {
+  //       console.error("Failed to load chats:", error);
+  //     }
+  //   };
 
-    loadChats();
-  }, []);
+  //   loadChats();
+  // }, []);
 
   const handleChatPress = (chat) => {
     // Logic to navigate to the chat screen with the selected user
@@ -235,6 +276,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   verificationText: {
     fontSize: 18,
@@ -328,6 +372,19 @@ const styles = StyleSheet.create({
   acceptButtonText: {
     color: "#ffffff",
     fontWeight: "bold",
+  },
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  availabilityText: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  switch: {
+    transform: [{ scale: 1.5 }],
   },
 });
 

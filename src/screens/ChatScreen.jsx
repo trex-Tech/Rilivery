@@ -24,7 +24,10 @@ const ChatScreen = ({ route }) => {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [isVisible, setIsVisible] = useState(false);
-  const translateY = useRef(new Animated.Value(300)).current; // Start off-screen
+  const translateY = useRef(new Animated.Value(300)).current;
+  const [pickup, setPickup] = useState("");
+  const [dropoff, setDropoff] = useState("");
+  const [amount, setAmount] = useState();
 
   const panResponder = useRef(
     PanResponder.create({
@@ -121,6 +124,43 @@ const ChatScreen = ({ route }) => {
     }
   };
 
+  const handleSendErrands = async () => {
+    const newMessage = {
+      id: messages.length + 1, // Ensure unique ID
+      text: "New Errand",
+      pickup: pickup,
+      dropoff: dropoff,
+      amount: amount,
+      sender: "currentUser", // Set sender to current user
+      timestamp: new Date().toISOString(), // Add timestamp
+    };
+    const updatedMessages = [...messages, newMessage];
+    setMessages(updatedMessages);
+    setMessage("");
+    closeBottomSheet();
+
+    // Save to AsyncStorage
+    try {
+      const storedChats = await AsyncStorage.getItem("chats");
+      const chats = storedChats ? JSON.parse(storedChats) : [];
+      const chatIndex = chats.findIndex((chat) => chat.rider.id === rider.id);
+
+      if (chatIndex > -1) {
+        chats[chatIndex].lastMessageTime = new Date().toISOString(); // Update last message time
+        chats[chatIndex].messages = updatedMessages;
+      } else {
+        chats.push({
+          rider,
+          lastMessageTime: new Date().toISOString(), // Set last message time
+          messages: updatedMessages,
+        });
+      }
+
+      await AsyncStorage.setItem("chats", JSON.stringify(chats));
+    } catch (error) {
+      console.error("Failed to save chat:", error);
+    }
+  };
   const handleCallRider = () => {
     const phone_number = rider.phone_number;
     // console.log("phone:::", phone_number);
@@ -167,6 +207,8 @@ const ChatScreen = ({ route }) => {
       return acc;
     }, {});
 
+    // console.log("messages:::", groupedMessages);
+
     return Object.keys(groupedMessages).map((dateKey) => (
       <View key={dateKey}>
         <Text style={styles.dateHeader}>{dateKey}</Text>
@@ -190,6 +232,38 @@ const ChatScreen = ({ route }) => {
               >
                 {item.text}
               </Text>
+              <Text
+                style={[
+                  styles.messageText,
+                  { color: isCurrentUser ? "#fff" : "#333" },
+                ]}
+              >
+                Pick-up: {item.pickup}
+              </Text>
+              <Text
+                style={[
+                  styles.messageText,
+                  { color: isCurrentUser ? "#fff" : "#333" },
+                ]}
+              >
+                Drop-off: {item.dropoff}
+              </Text>
+              <Text
+                style={[
+                  styles.messageText,
+                  { color: isCurrentUser ? "#fff" : "#333" },
+                ]}
+              >
+                Amount paid: ₦{item.amount}
+              </Text>
+              <Text
+                style={[
+                  styles.messageText,
+                  { color: isCurrentUser ? "#fff" : "#333" },
+                ]}
+              >
+                Errand status: PENDING
+              </Text>
               <Text style={styles.messageTime}>
                 {formatTime(item.timestamp)}
               </Text>
@@ -211,25 +285,25 @@ const ChatScreen = ({ route }) => {
           <Text style={styles.riderName}>
             {rider.first_name} {rider.last_name}
           </Text>
-          <TouchableOpacity style={styles.callButton} onPress={handleCallRider}>
-            <Text style={styles.callButtonText}>Call</Text>
-          </TouchableOpacity>
         </View>
         <ScrollView style={{ marginHorizontal: 10 }}>
           {renderMessages()}
         </ScrollView>
         <View style={styles.inputContainer}>
-          <TextInput
+          {/* <TextInput
             style={styles.input}
             value={message}
             onChangeText={setMessage}
             placeholder="Type a message..."
-          />
-          <TouchableOpacity
+          /> */}
+          {/* <TouchableOpacity
             style={styles.sendButton}
             onPress={handleSendMessage}
           >
             <Text style={styles.sendButtonText}>Send</Text>
+          </TouchableOpacity> */}
+          <TouchableOpacity style={styles.callButton} onPress={handleCallRider}>
+            <Text style={styles.callButtonText}>Call {rider.first_name}</Text>
           </TouchableOpacity>
         </View>
         <TouchableOpacity
@@ -255,19 +329,25 @@ const ChatScreen = ({ route }) => {
               <TextInput
                 style={styles.bottomSheetInput}
                 placeholder="Pickup Location"
+                value={pickup}
+                onChangeText={(text) => setPickup(text)}
               />
               <TextInput
                 style={styles.bottomSheetInput}
                 placeholder="Drop-off Location"
+                value={dropoff}
+                onChangeText={(text) => setDropoff(text)}
               />
               <TextInput
                 style={styles.bottomSheetInput}
                 placeholder="Amount to Pay"
                 keyboardType="numeric"
+                value={amount}
+                onChangeText={(text) => setAmount(text)}
               />
               <TouchableOpacity
                 style={styles.startErrandButton}
-                onPress={handleStartErrand} // Start errand logic here
+                onPress={handleSendErrands} // Start errand logic here
               >
                 <Text style={styles.startErrandButtonText}>Start Errand</Text>
               </TouchableOpacity>
@@ -314,6 +394,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#007BFF",
     padding: 10,
     borderRadius: 5,
+    width: "100%",
+    alignItems: "center",
+    padding: 15,
   },
   callButtonText: {
     color: "#ffffff",

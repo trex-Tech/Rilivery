@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import {
   View,
   Text,
@@ -7,12 +7,15 @@ import {
   Alert,
   SafeAreaView,
   Image,
+  Modal,
 } from "react-native";
 import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
 import ScrollableContainer from "../components/ScrollableContainer";
 import * as ImagePicker from "expo-image-picker";
 import LoadingButton from "../components/Button";
 import { VerifyMe } from "../../services/Rider.service";
+import { GlobalContext } from "../context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const RiderVerification = ({ navigation }) => {
   const [permission, requestPermission] = useCameraPermissions();
@@ -21,6 +24,16 @@ const RiderVerification = ({ navigation }) => {
   const [capturedImage, setCapturedImage] = useState(null);
   const [licenseImage, setLicenseImage] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const { setIsAuthenticated, setUserType } = useContext(GlobalContext);
+
+  const showAlert = () => {
+    setModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalVisible(false);
+  };
 
   if (!permission) {
     // Camera permissions are still loading.
@@ -88,12 +101,12 @@ const RiderVerification = ({ navigation }) => {
       if (res.data.status === "success") {
         console.log("verify response:::", res.data.data);
         setLoading(false);
-        navigation.navigate("RiderHome");
+        showAlert();
       }
     } catch (err) {
       setLoading(false);
       if (err.response) {
-        Alert.alert(err.response.data.message);
+        showAlert();
       }
     }
   };
@@ -177,6 +190,26 @@ const RiderVerification = ({ navigation }) => {
         loading={loading} // Set to true if you want to show a loading state
         disabled={!capturedImage || !licenseImage} // Disable if either image is missing
       />
+
+      <Modal transparent={true} animationType="slide" visible={modalVisible}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={{ textAlign: "center", fontSize: 20 }}>
+              Your details have been sent for Verification. You can now Sign In
+              as A Rider.
+            </Text>
+            <LoadingButton
+              onPress={() => {
+                AsyncStorage.removeItem("access_token");
+                setIsAuthenticated(false);
+                setUserType("User");
+              }}
+              title="Sign in"
+            />
+            {/* Your button component */}
+          </View>
+        </View>
+      </Modal>
     </ScrollableContainer>
   );
 };
@@ -267,6 +300,19 @@ const styles = StyleSheet.create({
     height: 300,
     borderRadius: 10,
     marginBottom: 20,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    width: 300,
+    padding: 20,
+    backgroundColor: "white",
+    borderRadius: 10,
+    alignItems: "center",
   },
 });
 

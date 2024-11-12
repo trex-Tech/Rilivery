@@ -14,6 +14,7 @@ import axios from "axios";
 import { BASE_URL } from "../../config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { GlobalContext } from "../context";
+import { Feather } from "@expo/vector-icons";
 
 const RegisterScreen = ({ navigation }) => {
   const [firstName, setFirstName] = useState("");
@@ -22,6 +23,7 @@ const RegisterScreen = ({ navigation }) => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { setIsAuthenticated } = useContext(GlobalContext);
+  const [isVisible, setIsVisible] = useState(false);
 
   const [errors, setErrors] = useState({}); // State to hold error messages
 
@@ -117,16 +119,25 @@ const RegisterScreen = ({ navigation }) => {
       {errors.phoneNumber && (
         <Text style={styles.errorText}>{errors.phoneNumber}</Text>
       )}
-      <TextInput
-        style={styles.input}
-        value={password}
-        onChangeText={(text) => {
-          setPassword(text);
-          setErrors((prev) => ({ ...prev, password: null }));
-        }}
-        placeholder="Password"
-        secureTextEntry
-      />
+      <View style={styles.input}>
+        <TextInput
+          value={password}
+          onChangeText={(text) => {
+            setPassword(text);
+            setErrors((prev) => ({ ...prev, password: null }));
+          }}
+          placeholder="Password"
+          secureTextEntry={!isVisible}
+          style={{ width: "80%" }}
+        />
+        <TouchableOpacity onPress={() => setIsVisible(!isVisible)}>
+          {isVisible ? (
+            <Feather name="eye-off" size={24} color="black" />
+          ) : (
+            <Feather name="eye" size={24} color="black" />
+          )}
+        </TouchableOpacity>
+      </View>
       {errors.password && (
         <Text style={styles.errorText}>{errors.password}</Text>
       )}
@@ -176,6 +187,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     padding: 10,
     fontSize: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   button: {
     backgroundColor: "#007BFF",
