@@ -326,18 +326,21 @@ const ChatScreen = ({ route }) => {
               {...panResponder.panHandlers}
             >
               <Text style={styles.sheetTitle}>Start an Errand</Text>
+              <Text style={{ marginTop: 20 }}>Pickup Location</Text>
               <TextInput
                 style={styles.bottomSheetInput}
                 placeholder="Pickup Location"
                 value={pickup}
                 onChangeText={(text) => setPickup(text)}
               />
+              <Text>Drop-off Location</Text>
               <TextInput
                 style={styles.bottomSheetInput}
                 placeholder="Drop-off Location"
                 value={dropoff}
                 onChangeText={(text) => setDropoff(text)}
               />
+              <Text>Amount to pay</Text>
               <TextInput
                 style={styles.bottomSheetInput}
                 placeholder="Amount to Pay"
@@ -351,12 +354,12 @@ const ChatScreen = ({ route }) => {
               >
                 <Text style={styles.startErrandButtonText}>Start Errand</Text>
               </TouchableOpacity>
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={styles.closeButton}
                 onPress={closeBottomSheet} // Close the bottom sheet
               >
                 <Text style={styles.buttonText}>Close</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </Animated.View>
           </View>
         </TouchableWithoutFeedback>
@@ -464,7 +467,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   bottomSheet: {
-    height: 300,
+    height: 450,
     backgroundColor: "#ffffff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
