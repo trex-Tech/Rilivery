@@ -22,7 +22,8 @@ const RiderHomePage = () => {
   const [activeTab, setActiveTab] = useState("availableErrands"); // Default tab
   const [ErrandListRefresh, setErrandListRefresh] = useState(false);
   const [verifiedRefresh, setVerifiedRefresh] = useState(false);
-  const { setIsAuthenticated, setUserType } = useContext(GlobalContext);
+  const { setIsAuthenticated, setUserType, riderStatus, riderAvailable } =
+    useContext(GlobalContext);
   const [verified, setVerified] = useState(false);
   const [isAvailable, setIsAvailable] = useState(false);
 
@@ -37,7 +38,7 @@ const RiderHomePage = () => {
   };
 
   const toggleAvailability = async () => {
-    const currentAvailability = isAvailable;
+    const currentAvailability = riderAvailable;
 
     const result = await ToggleAvailability();
 
@@ -59,20 +60,20 @@ const RiderHomePage = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {verified ? (
+      {riderStatus === "approved" ? (
         <ScrollableContainer
           refreshing={ErrandListRefresh}
           onRefresh={onErrandListRefresh}
         >
           <View style={styles.headerContainer}>
             <Text style={styles.availabilityText}>
-              {isAvailable ? "Online" : "Offline"}
+              {riderAvailable ? "Online" : "Offline"}
             </Text>
             <Switch
-              value={isAvailable}
+              value={riderAvailable}
               onValueChange={toggleAvailability}
               trackColor={{ false: "#767577", true: "#007BFF" }}
-              thumbColor={isAvailable ? "#fff" : "#f4f3f4"}
+              thumbColor={riderAvailable ? "#fff" : "#f4f3f4"}
               style={styles.switch}
             />
           </View>
@@ -111,7 +112,7 @@ const RiderHomePage = () => {
           onPress={() => {
             AsyncStorage.removeItem("access_token");
             setIsAuthenticated(false);
-            setUserType("User");
+            AsyncStorage.removeItem("user_type");
           }}
         >
           <AntDesign name="logout" size={24} color="white" />

@@ -16,3 +16,9 @@ export const ToggleAvailability = async () => {
 
   return res;
 };
+
+export const GetProfileDtails = async () => {
+  const res = await api.get("/auth/me/");
+
+  return res;
+};

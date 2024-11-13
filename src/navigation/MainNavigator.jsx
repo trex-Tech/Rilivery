@@ -93,14 +93,17 @@ const RiderNavigator = () => {
 
 const MainNavigator = () => {
   const { isAuthenticated, userType } = useContext(GlobalContext);
+
   return (
     <>
       {isAuthenticated ? (
         <>
           {userType === "User" ? (
             <AuthenticatedNavigator />
-          ) : (
+          ) : userType === "Rider" ? (
             <RiderNavigator />
+          ) : (
+            <UnAuthNavigator />
           )}
         </>
       ) : (

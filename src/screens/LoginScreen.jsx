@@ -13,13 +13,15 @@ import LoadingButton from "../components/Button";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { GlobalContext } from "../context";
 import Feather from "@expo/vector-icons/Feather";
+import { GetProfileDtails } from "../../services/Rider.service";
 
 const LoginScreen = ({ navigation }) => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({}); // State to hold error messages
   const [loading, setLoading] = useState(false);
-  const { setIsAuthenticated, setUserType } = useContext(GlobalContext);
+  const { setIsAuthenticated, setUserType, setRiderStatus } =
+    useContext(GlobalContext);
   const [isVisible, setIsVisible] = useState(false);
 
   const validateInputs = () => {
@@ -40,15 +42,35 @@ const LoginScreen = ({ navigation }) => {
         ? phoneNumber
         : `+234${phoneNumber}`;
 
-      console.log("data:::", formattedPhoneNumber, password);
+      // console.log("data:::", formattedPhoneNumber, password);
       try {
         const res = await LoginUser(formattedPhoneNumber, password);
-        console.log("login res:::", res.data);
+        console.log("login res:::", res.data.data);
         if (res.data.status === "success") {
           setLoading(false);
           setIsAuthenticated(true);
           setUserType(res.data.data.user_type);
+          setRiderStatus(res.data.data.rider_status);
           await AsyncStorage.setItem("access_token", res.data.data.access);
+          if (res.data.data.user_type) {
+            await AsyncStorage.setItem("user_type", res.data.data.user_type);
+          }
+          if (res.data.data.rider_status) {
+            await AsyncStorage.setItem(
+              "rider_status",
+              res.data.data.rider_status
+            );
+          }
+
+          const profile_res = await GetProfileDtails();
+
+          if (profile_res.data.status === "success") {
+            console.log("Profile data:::", profile_res.data.data);
+            await AsyncStorage.setItem(
+              "rider_available",
+              JSON.stringify(profile_res.data.data.is_online)
+            );
+          }
 
           // console.log("Token saved::", res.data.data.access);
         } else {
