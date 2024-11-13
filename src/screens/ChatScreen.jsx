@@ -325,41 +325,46 @@ const ChatScreen = ({ route }) => {
               style={[styles.bottomSheet, { transform: [{ translateY }] }]}
               {...panResponder.panHandlers}
             >
-              <Text style={styles.sheetTitle}>Start an Errand</Text>
-              <Text style={{ marginTop: 20 }}>Pickup Location</Text>
-              <TextInput
-                style={styles.bottomSheetInput}
-                placeholder="Pickup Location"
-                value={pickup}
-                onChangeText={(text) => setPickup(text)}
-              />
-              <Text>Drop-off Location</Text>
-              <TextInput
-                style={styles.bottomSheetInput}
-                placeholder="Drop-off Location"
-                value={dropoff}
-                onChangeText={(text) => setDropoff(text)}
-              />
-              <Text>Amount to pay</Text>
-              <TextInput
-                style={styles.bottomSheetInput}
-                placeholder="Amount to Pay"
-                keyboardType="numeric"
-                value={amount}
-                onChangeText={(text) => setAmount(text)}
-              />
-              <TouchableOpacity
-                style={styles.startErrandButton}
-                onPress={handleSendErrands} // Start errand logic here
+              <KeyboardAvoidingView
+                style={styles.container}
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
               >
-                <Text style={styles.startErrandButtonText}>Start Errand</Text>
-              </TouchableOpacity>
-              {/* <TouchableOpacity
+                <Text style={styles.sheetTitle}>Start an Errand</Text>
+                <Text style={{ marginTop: 20 }}>Pickup Location</Text>
+                <TextInput
+                  style={styles.bottomSheetInput}
+                  placeholder="Pickup Location"
+                  value={pickup}
+                  onChangeText={(text) => setPickup(text)}
+                />
+                <Text>Drop-off Location</Text>
+                <TextInput
+                  style={styles.bottomSheetInput}
+                  placeholder="Drop-off Location"
+                  value={dropoff}
+                  onChangeText={(text) => setDropoff(text)}
+                />
+                <Text>Amount to pay</Text>
+                <TextInput
+                  style={styles.bottomSheetInput}
+                  placeholder="Amount to Pay"
+                  keyboardType="numeric"
+                  value={amount}
+                  onChangeText={(text) => setAmount(text)}
+                />
+                <TouchableOpacity
+                  style={styles.startErrandButton}
+                  onPress={handleSendErrands} // Start errand logic here
+                >
+                  <Text style={styles.startErrandButtonText}>Start Errand</Text>
+                </TouchableOpacity>
+                {/* <TouchableOpacity
                 style={styles.closeButton}
                 onPress={closeBottomSheet} // Close the bottom sheet
               >
                 <Text style={styles.buttonText}>Close</Text>
               </TouchableOpacity> */}
+              </KeyboardAvoidingView>
             </Animated.View>
           </View>
         </TouchableWithoutFeedback>

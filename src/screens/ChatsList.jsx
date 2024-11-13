@@ -9,6 +9,7 @@ import {
   Image,
   Alert,
   SafeAreaView,
+  Platform,
 } from "react-native";
 import moment from "moment";
 import { useFocusEffect } from "@react-navigation/native";
@@ -95,28 +96,30 @@ const ChatsList = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Recent Chats</Text>
-      {chats.length > 0 ? (
-        <FlatList
-          data={chats}
-          renderItem={renderChatItem}
-          keyExtractor={(item) =>
-            item.id ? item.id.toString() : Math.random().toString()
-          }
-          contentContainerStyle={styles.chatList}
-        />
-      ) : (
-        renderEmptyChatList() // Render empty chat list component
-      )}
-      {chats.length > 0 && (
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={handleDeleteChats}
-        >
-          <Text style={styles.deleteButtonText}>Clear Chat History</Text>
-        </TouchableOpacity>
-      )}
+    <SafeAreaView style={[styles.container, { padding: 0 }]}>
+      <View style={[styles.container, {}]}>
+        <Text style={styles.title}>Recent Chats</Text>
+        {chats.length > 0 ? (
+          <FlatList
+            data={chats}
+            renderItem={renderChatItem}
+            keyExtractor={(item) =>
+              item.id ? item.id.toString() : Math.random().toString()
+            }
+            contentContainerStyle={styles.chatList}
+          />
+        ) : (
+          renderEmptyChatList() // Render empty chat list component
+        )}
+        {chats.length > 0 && (
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={handleDeleteChats}
+          >
+            <Text style={styles.deleteButtonText}>Clear Chat History</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </SafeAreaView>
   );
 };
