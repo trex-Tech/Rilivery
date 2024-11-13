@@ -107,7 +107,7 @@ const HomeScreen = ({ navigation }) => {
         data={loading ? [] : riders} // Show an empty array if loading
         renderItem={loading ? renderLoadingIndicator : renderRider} // Render loading indicator or riders
         keyExtractor={(item) => item.id}
-        numColumns={3}
+        numColumns={2}
         contentContainerStyle={styles.grid}
         ListEmptyComponent={
           loading ? <ActivityIndicator size="large" color="#007BFF" /> : null

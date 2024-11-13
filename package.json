@@ -6,9 +6,7 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web",
-    "build:tailwind": "tailwindcss --input input.css --output tailwind.css --no-autoprefixer && tailwind-rn",
-    "dev:tailwind": "concurrently \"tailwindcss --input input.css --output tailwind.css --no-autoprefixer --watch\" \"tailwind-rn --watch\""
+    "web": "expo start --web"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.4",
@@ -31,14 +29,10 @@
     "react-native-maps": "^1.18.2",
     "react-native-paper": "^5.12.5",
     "react-native-raw-bottom-sheet": "^3.0.0",
-    "react-native-reanimated": "~3.10.1",
-    "tailwind-rn": "^4.2.0"
+    "react-native-reanimated": "~3.10.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0",
-    "concurrently": "^9.1.0",
-    "postcss": "^8.4.47",
-    "tailwindcss": "^3.4.14"
+    "@babel/core": "^7.20.0"
   },
   "private": true
 }

@@ -8,6 +8,7 @@ export const GlobalProvider = ({ children }) => {
   const [userType, setUserType] = useState("");
   const [riderStatus, setRiderStatus] = useState("");
   const [riderAvailable, setRiderAvailable] = useState(false);
+  const [accessToken, setAccessToken] = useState(null);
 
   const getAccessToken = async () => {
     const access_token = await AsyncStorage.getItem("access_token");
@@ -15,6 +16,7 @@ export const GlobalProvider = ({ children }) => {
     // console.log("Access_token:::", access_token);
     if (access_token) {
       setIsAuthenticated(true);
+      setAccessToken(access_token);
     } else {
       setIsAuthenticated(false);
       console.log("There's no access token");
@@ -52,6 +54,7 @@ export const GlobalProvider = ({ children }) => {
         console.log("Availability:", parsedValue);
       } else {
         setRiderAvailable(false);
+        console.log("Availability is off");
       }
     } catch (error) {
       console.error("Failed to load rider availability:", error);
@@ -76,6 +79,9 @@ export const GlobalProvider = ({ children }) => {
         setRiderStatus,
         riderAvailable,
         setRiderAvailable,
+        getRiderAvailability,
+        accessToken,
+        setAccessToken,
       }}
     >
       {children}

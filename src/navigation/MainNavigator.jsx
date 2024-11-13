@@ -11,6 +11,7 @@ import ChatsList from "../screens/ChatsList";
 import RiderVerification from "../screens/RiderVerification";
 import RiderHomePage from "../screens/RiderHomePage";
 import { GlobalContext } from "../context";
+import { Text, View } from "react-native";
 
 const Stack = createStackNavigator();
 

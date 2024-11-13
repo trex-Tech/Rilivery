@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useContext } from "react";
 import {
   View,
   TextInput,
@@ -16,8 +16,13 @@ import {
   PanResponder,
   ScrollView,
   TouchableWithoutFeedback,
+  Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SOCKET_URL } from "../../config";
+import { GlobalContext } from "../context";
+import { SendErrand } from "../../services/User.service";
+import LoadingButton from "../components/Button";
 
 const ChatScreen = ({ route }) => {
   const { rider } = route.params;
@@ -28,11 +33,33 @@ const ChatScreen = ({ route }) => {
   const [pickup, setPickup] = useState("");
   const [dropoff, setDropoff] = useState("");
   const [amount, setAmount] = useState();
+  const { accessToken } = useContext(GlobalContext);
+  const errandSocket = new WebSocket(`${SOCKET_URL}/?token=${accessToken}`);
+  const [sendErrandLoading, setSendErrandLoading] = useState(false);
+
+  // useEffect(() => {
+  //   if (!accessToken)
+  //     return console.log("❌️ Chat Socket Server: No Token Provided.");
+
+  //   errandSocket.onopen = () =>
+  //     console.log("⚡️ Chat Socket Server Connected.");
+  //   errandSocket.onclose = () => {
+  //     console.log("❌️Chat Socket Server Disconnected.");
+  //   };
+  //   errandSocket.onerror = (error) =>
+  //     console.log("⚠️ Chat Socket Server Error: ", error);
+  //   errandSocket.onmessage = (data) =>
+  //     console.log("message from socket:::", data);
+
+  //   return () => {
+  //     errandSocket.close();
+  //   };
+  // }, [accessToken]);
 
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gestureState) => {
-        return gestureState.dy > 10; // Start dragging if moved down
+        return gestureState.dy > 10;
       },
       onPanResponderMove: (evt, gestureState) => {
         translateY.setValue(gestureState.dy); // Update position
@@ -84,6 +111,7 @@ const ChatScreen = ({ route }) => {
     };
 
     loadChatMessages();
+    // console.log(rider);
   }, [rider]);
 
   const handleSendMessage = async () => {
@@ -125,40 +153,55 @@ const ChatScreen = ({ route }) => {
   };
 
   const handleSendErrands = async () => {
-    const newMessage = {
-      id: messages.length + 1, // Ensure unique ID
-      text: "New Errand",
-      pickup: pickup,
-      dropoff: dropoff,
-      amount: amount,
-      sender: "currentUser", // Set sender to current user
-      timestamp: new Date().toISOString(), // Add timestamp
-    };
-    const updatedMessages = [...messages, newMessage];
-    setMessages(updatedMessages);
-    setMessage("");
-    closeBottomSheet();
+    setSendErrandLoading(true);
+    if (pickup === "" || dropoff === "" || amount === undefined) {
+      setSendErrandLoading(false);
+      Alert.alert("Please fill your Errand details");
+    } else {
+      const newMessage = {
+        id: messages.length + 1, // Ensure unique ID
+        text: "New Errand",
+        pickup: pickup,
+        dropoff: dropoff,
+        amount: amount,
+        sender: "currentUser", // Set sender to current user
+        timestamp: new Date().toISOString(), // Add timestamp
+      };
 
-    // Save to AsyncStorage
-    try {
-      const storedChats = await AsyncStorage.getItem("chats");
-      const chats = storedChats ? JSON.parse(storedChats) : [];
-      const chatIndex = chats.findIndex((chat) => chat.rider.id === rider.id);
+      const res = await SendErrand(pickup, dropoff, amount, rider.id);
 
-      if (chatIndex > -1) {
-        chats[chatIndex].lastMessageTime = new Date().toISOString(); // Update last message time
-        chats[chatIndex].messages = updatedMessages;
-      } else {
-        chats.push({
-          rider,
-          lastMessageTime: new Date().toISOString(), // Set last message time
-          messages: updatedMessages,
-        });
+      if (res.data.status === "success") {
+        console.log(res.data);
+        setSendErrandLoading(false);
+        const updatedMessages = [...messages, newMessage];
+        setMessages(updatedMessages);
+        setMessage("");
+        closeBottomSheet();
+
+        // Save to AsyncStorage
+        try {
+          const storedChats = await AsyncStorage.getItem("chats");
+          const chats = storedChats ? JSON.parse(storedChats) : [];
+          const chatIndex = chats.findIndex(
+            (chat) => chat.rider.id === rider.id
+          );
+
+          if (chatIndex > -1) {
+            chats[chatIndex].lastMessageTime = new Date().toISOString(); // Update last message time
+            chats[chatIndex].messages = updatedMessages;
+          } else {
+            chats.push({
+              rider,
+              lastMessageTime: new Date().toISOString(), // Set last message time
+              messages: updatedMessages,
+            });
+          }
+
+          await AsyncStorage.setItem("chats", JSON.stringify(chats));
+        } catch (error) {
+          console.error("Failed to save chat:", error);
+        }
       }
-
-      await AsyncStorage.setItem("chats", JSON.stringify(chats));
-    } catch (error) {
-      console.error("Failed to save chat:", error);
     }
   };
   const handleCallRider = () => {
@@ -302,19 +345,18 @@ const ChatScreen = ({ route }) => {
           >
             <Text style={styles.sendButtonText}>Send</Text>
           </TouchableOpacity> */}
-          <TouchableOpacity style={styles.callButton} onPress={handleCallRider}>
+          {/* <TouchableOpacity style={styles.callButton} onPress={handleCallRider}>
             <Text style={styles.callButtonText}>Call {rider.first_name}</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
-        <TouchableOpacity
-          style={[
-            styles.startErrandButton,
-            { marginHorizontal: 10, marginBottom: 10 },
-          ]}
-          onPress={openBottomSheet} // Open the bottom sheet
-        >
-          <Text style={styles.startErrandButtonText}>Start Errand</Text>
-        </TouchableOpacity>
+
+        <View style={{ paddingHorizontal: 10, marginBottom: 10 }}>
+          <LoadingButton
+            title={`Call ${rider.first_name}`}
+            onPress={handleCallRider}
+          />
+          <LoadingButton title={"Start Errand"} onPress={openBottomSheet} />
+        </View>
       </SafeAreaView>
 
       {/* Draggable Bottom Sheet */}
@@ -352,12 +394,17 @@ const ChatScreen = ({ route }) => {
                   value={amount}
                   onChangeText={(text) => setAmount(text)}
                 />
-                <TouchableOpacity
+                {/* <TouchableOpacity
                   style={styles.startErrandButton}
                   onPress={handleSendErrands} // Start errand logic here
                 >
                   <Text style={styles.startErrandButtonText}>Start Errand</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
+                <LoadingButton
+                  title={"Send"}
+                  loading={sendErrandLoading}
+                  onPress={handleSendErrands}
+                />
                 {/* <TouchableOpacity
                 style={styles.closeButton}
                 onPress={closeBottomSheet} // Close the bottom sheet

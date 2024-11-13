@@ -16,19 +16,44 @@ import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { Logout } from "../../services/Auth.service";
 import { GlobalContext } from "../context";
 import ScrollableContainer from "../components/ScrollableContainer";
-import { ToggleAvailability } from "../../services/Rider.service";
+import {
+  GetProfileDtails,
+  ToggleAvailability,
+} from "../../services/Rider.service";
+import { SOCKET_URL } from "../../config";
 
 const RiderHomePage = () => {
   const [activeTab, setActiveTab] = useState("availableErrands"); // Default tab
   const [ErrandListRefresh, setErrandListRefresh] = useState(false);
   const [verifiedRefresh, setVerifiedRefresh] = useState(false);
-  const { setIsAuthenticated, setUserType, riderStatus, riderAvailable } =
-    useContext(GlobalContext);
+  const {
+    setIsAuthenticated,
+    riderStatus,
+    riderAvailable,
+    getRiderAvailability,
+    setRiderAvailable,
+    accessToken,
+  } = useContext(GlobalContext);
   const [verified, setVerified] = useState(false);
   const [isAvailable, setIsAvailable] = useState(false);
 
+  const getRiderCurrentProfile = async () => {
+    const res = await GetProfileDtails();
+
+    if (res.data.status === "success") {
+      // console.log("Current status:::", res.data.data);
+      setRiderAvailable(res.data.data.is_online);
+    }
+  };
+
+  useEffect(() => {
+    getRiderCurrentProfile();
+  }, []);
+
   const onErrandListRefresh = async () => {
     setErrandListRefresh(true);
+    getRiderAvailability();
+    getRiderCurrentProfile();
     setErrandListRefresh(false);
   };
 
@@ -44,13 +69,15 @@ const RiderHomePage = () => {
 
     if (result.data) {
       setIsAvailable(!currentAvailability);
+      console.log(result.data);
+      setRiderAvailable(result.data.data.online);
     }
   };
 
   const renderContent = () => {
     switch (activeTab) {
       case "availableErrands":
-        return <AvailableErrands />;
+        return <AvailableErrands accessToken={accessToken} />;
       case "messages":
         return <Messages />;
       default:
@@ -113,6 +140,7 @@ const RiderHomePage = () => {
             AsyncStorage.removeItem("access_token");
             setIsAuthenticated(false);
             AsyncStorage.removeItem("user_type");
+            AsyncStorage.removeItem("rider_available");
           }}
         >
           <AntDesign name="logout" size={24} color="white" />
@@ -123,49 +151,68 @@ const RiderHomePage = () => {
 };
 
 // Example components for each tab
-const AvailableErrands = () => {
+const AvailableErrands = ({ accessToken }) => {
   const [loading, setLoading] = useState(false);
-  const errands = [
-    // {
-    //   id: "1",
-    //   title: "Grocery Delivery",
-    //   description:
-    //     "Pick up groceries from the store and deliver to the customer.",
-    //   distance: "2.5 km",
-    //   image: "https://example.com/grocery.jpg", // Placeholder image URL
-    // },
-    // {
-    //   id: "2",
-    //   title: "Package Drop-off",
-    //   description: "Drop off a package at the post office.",
-    //   distance: "1.2 km",
-    //   image: "https://example.com/package.jpg", // Placeholder image URL
-    // },
-    // {
-    //   id: "3",
-    //   title: "Food Delivery",
-    //   description: "Deliver food from the restaurant to the customer.",
-    //   distance: "3.0 km",
-    //   image: "https://example.com/food.jpg", // Placeholder image URL
-    // },
-  ];
+  const [errands, setErrands] = useState([]);
 
-  const renderErrandItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.errandCard}
-      onPress={() => handleAcceptErrand(item)}
-    >
-      <Image source={{ uri: item.image }} style={styles.errandImage} />
-      <View style={styles.errandDetails}>
-        <Text style={styles.errandTitle}>{item.title}</Text>
-        <Text style={styles.errandDescription}>{item.description}</Text>
-        <Text style={styles.errandDistance}>{item.distance}</Text>
-        <TouchableOpacity style={styles.acceptButton}>
-          <Text style={styles.acceptButtonText}>Accept Errand</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
+  const errandSocket = new WebSocket(`${SOCKET_URL}/?token=${accessToken}`);
+
+  useEffect(() => {
+    if (!accessToken) {
+      console.log("❌️ Rider Socket Server: No Token Provided.");
+      return;
+    }
+
+    errandSocket.onopen = () => {
+      console.log("⚡️ Rider Socket Server Connected.");
+    };
+
+    errandSocket.onclose = () => {
+      console.log("❌️ Rider Socket Server Disconnected.");
+    };
+
+    errandSocket.onerror = (error) => {
+      console.log("⚠️ Rider Socket Server Error: ", error);
+    };
+
+    errandSocket.onmessage = (event) => {
+      console.log("event:::", event.data);
+      setErrands((prevErrands) => [...prevErrands, JSON.parse(event.data)]);
+      // const data = JSON.parse(event.data); // Parse the incoming message
+      // console.log("message from socket:::", data);
+
+      // Assuming the data contains an errand object
+      // if (data.type === "new_errand") {
+      //   // Check the type of message
+      //   setErrands((prevErrands) => [...prevErrands, data.errand]); // Update state with new errand
+      // }
+    };
+
+    return () => {
+      errandSocket.close();
+    };
+  }, [accessToken]);
+
+  const renderErrandItem = ({ item }) => {
+    console.log("errands:::", errands);
+    return (
+      <TouchableOpacity
+        style={styles.errandCard}
+        // onPress={() => handleAcceptErrand(item)}
+      >
+        <View style={styles.errandDetails}>
+          <Text style={styles.errandTitle}>Errand Owner: Kelly Owoju</Text>
+          <Text style={styles.errandTitle}>Errand Item: My Laptop</Text>
+          <Text style={styles.errandTitle}>From: {item.pickup_location}</Text>
+          <Text style={styles.errandTitle}>To: {item.drop_off_location}</Text>
+
+          <TouchableOpacity style={styles.acceptButton}>
+            <Text style={styles.acceptButtonText}>Accept Errand</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const EmptyErrands = () => {
     return (
@@ -192,7 +239,7 @@ const AvailableErrands = () => {
         <FlatList
           data={errands}
           renderItem={renderErrandItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.errand_id}
           contentContainerStyle={styles.errandList}
         />
       )}
