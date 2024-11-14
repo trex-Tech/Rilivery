@@ -12,6 +12,7 @@ import RiderVerification from "../screens/RiderVerification";
 import RiderHomePage from "../screens/RiderHomePage";
 import { GlobalContext } from "../context";
 import { Text, View } from "react-native";
+import Onboarding from "../screens/Onboarding";
 
 const Stack = createStackNavigator();
 
@@ -19,6 +20,11 @@ const UnAuthNavigator = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator>
+        <Stack.Screen
+          name="Onboard"
+          component={Onboarding}
+          options={{ headerShown: false }}
+        />
         <Stack.Screen
           name="Login"
           component={LoginScreen}
