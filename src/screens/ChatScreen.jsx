@@ -17,12 +17,14 @@ import {
   ScrollView,
   TouchableWithoutFeedback,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SOCKET_URL } from "../../config";
 import { GlobalContext } from "../context";
-import { SendErrand } from "../../services/User.service";
-import LoadingButton from "../components/Button";
+import { fetchRiderErrands, SendErrand } from "../../services/User.service";
+import LoadingButton, { OutlinedButton } from "../components/Button";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 const ChatScreen = ({ route }) => {
   const { rider } = route.params;
@@ -33,9 +35,19 @@ const ChatScreen = ({ route }) => {
   const [pickup, setPickup] = useState("");
   const [dropoff, setDropoff] = useState("");
   const [amount, setAmount] = useState();
+  const [item, setItem] = useState("");
   const { accessToken } = useContext(GlobalContext);
   const errandSocket = new WebSocket(`${SOCKET_URL}/?token=${accessToken}`);
   const [sendErrandLoading, setSendErrandLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const scrollViewRef = useRef(null);
+  const [chatLoading, setChatloading] = useState(false);
+
+  useEffect(() => {
+    if (!chatLoading) {
+      scrollViewRef.current?.scrollToEnd({ animated: true }); // Scroll to the bottom when loading is complete
+    }
+  }, [messages, chatLoading]);
 
   // useEffect(() => {
   //   if (!accessToken)
@@ -89,30 +101,49 @@ const ChatScreen = ({ route }) => {
 
   const closeBottomSheet = () => {
     Animated.timing(translateY, {
-      toValue: 300, // Move off-screen
+      toValue: 500, // Move off-screen
       duration: 200, // Adjust the duration for a quicker close
       useNativeDriver: true,
     }).start(() => setIsVisible(false));
   };
 
-  useEffect(() => {
-    const loadChatMessages = async () => {
-      try {
-        const storedChats = await AsyncStorage.getItem("chats");
-        const chats = storedChats ? JSON.parse(storedChats) : [];
-        const chat = chats.find((chat) => chat.rider.id === rider.id);
+  const loadChatMessages = async () => {
+    setChatloading(true);
+    try {
+      // const storedChats = await AsyncStorage.getItem("chats");
+      // const chats = storedChats ? JSON.parse(storedChats) : [];
+      // const chat = chats.find((chat) => chat.rider.id === rider.id);
+      const res = await fetchRiderErrands(rider.id);
 
-        if (chat) {
-          setMessages(chat.messages || []);
-        }
-      } catch (error) {
-        console.error("Failed to load chat messages:", error);
+      if (res.data.status === "success") {
+        // console.log("errands res:::", res.data.data);
+        setMessages(res.data.data || []);
+        setChatloading(false);
       }
-    };
 
+      // if (chat) {
+      //   setMessages(chat.messages || []);
+      // }
+    } catch (error) {
+      console.error("Failed to load chat messages:", error);
+      setChatloading(false);
+    }
+  };
+  useEffect(() => {
     loadChatMessages();
     // console.log(rider);
   }, [rider]);
+
+  useEffect(() => {
+    const fetchUserFromAsyncStorage = async () => {
+      const user = await AsyncStorage.getItem("user_data");
+      const parsedUser = JSON.parse(user);
+
+      console.log("User in chat screen:::", parsedUser);
+      setCurrentUser(parsedUser);
+    };
+    fetchUserFromAsyncStorage();
+  }, []);
 
   const handleSendMessage = async () => {
     if (message.trim()) {
@@ -154,56 +185,62 @@ const ChatScreen = ({ route }) => {
 
   const handleSendErrands = async () => {
     setSendErrandLoading(true);
-    if (pickup === "" || dropoff === "" || amount === undefined) {
+    if (
+      pickup === "" ||
+      dropoff === "" ||
+      amount === undefined ||
+      item === ""
+    ) {
       setSendErrandLoading(false);
       Alert.alert("Please fill your Errand details");
     } else {
       const newMessage = {
         id: messages.length + 1, // Ensure unique ID
-        text: "New Errand",
-        pickup: pickup,
-        dropoff: dropoff,
-        amount: amount,
-        sender: "currentUser", // Set sender to current user
-        timestamp: new Date().toISOString(), // Add timestamp
+        pickup_location: pickup,
+        drop_off_location: dropoff,
+        price: amount,
+        item: item,
+        sender: "currentUser",
+        created_at: new Date().toISOString(), // Add timestamp
       };
 
-      const res = await SendErrand(pickup, dropoff, amount, rider.id);
+      const res = await SendErrand(pickup, dropoff, amount, rider.id, item);
 
       if (res.data.status === "success") {
         console.log(res.data);
         setSendErrandLoading(false);
         const updatedMessages = [...messages, newMessage];
-        setMessages(updatedMessages);
+        loadChatMessages();
         setMessage("");
         closeBottomSheet();
 
         // Save to AsyncStorage
-        try {
-          const storedChats = await AsyncStorage.getItem("chats");
-          const chats = storedChats ? JSON.parse(storedChats) : [];
-          const chatIndex = chats.findIndex(
-            (chat) => chat.rider.id === rider.id
-          );
+        // try {
+        //   const storedChats = await AsyncStorage.getItem("chats");
+        //   const chats = storedChats ? JSON.parse(storedChats) : [];
+        //   const chatIndex = chats.findIndex(
+        //     (chat) => chat.rider.id === rider.id
+        //   );
 
-          if (chatIndex > -1) {
-            chats[chatIndex].lastMessageTime = new Date().toISOString(); // Update last message time
-            chats[chatIndex].messages = updatedMessages;
-          } else {
-            chats.push({
-              rider,
-              lastMessageTime: new Date().toISOString(), // Set last message time
-              messages: updatedMessages,
-            });
-          }
+        //   if (chatIndex > -1) {
+        //     chats[chatIndex].lastMessageTime = new Date().toISOString(); // Update last message time
+        //     chats[chatIndex].messages = updatedMessages;
+        //   } else {
+        //     chats.push({
+        //       rider,
+        //       lastMessageTime: new Date().toISOString(), // Set last message time
+        //       messages: updatedMessages,
+        //     });
+        //   }
 
-          await AsyncStorage.setItem("chats", JSON.stringify(chats));
-        } catch (error) {
-          console.error("Failed to save chat:", error);
-        }
+        //   await AsyncStorage.setItem("chats", JSON.stringify(chats));
+        // } catch (error) {
+        //   console.error("Failed to save chat:", error);
+        // }
       }
     }
   };
+
   const handleCallRider = () => {
     const phone_number = rider.phone_number;
     // console.log("phone:::", phone_number);
@@ -241,8 +278,20 @@ const ChatScreen = ({ route }) => {
   };
 
   const renderMessages = () => {
+    if (chatLoading) {
+      return <ActivityIndicator size="large" color="#0000ff" />; // Show loader if chat is loading
+    }
+
+    if (messages.length === 0) {
+      return (
+        <View style={styles.emptyMessageContainer}>
+          <Text style={styles.emptyMessageText}>No errands available.</Text>
+        </View>
+      ); // Show empty message if there are no messages
+    }
+
     const groupedMessages = messages.reduce((acc, message) => {
-      const dateKey = formatDate(message.timestamp);
+      const dateKey = formatDate(message.created_at);
       if (!acc[dateKey]) {
         acc[dateKey] = [];
       }
@@ -250,69 +299,80 @@ const ChatScreen = ({ route }) => {
       return acc;
     }, {});
 
-    // console.log("messages:::", groupedMessages);
+    const sortedDateKeys = Object.keys(groupedMessages).sort().reverse();
 
-    return Object.keys(groupedMessages).map((dateKey) => (
+    return sortedDateKeys.map((dateKey) => (
       <View key={dateKey}>
         <Text style={styles.dateHeader}>{dateKey}</Text>
-        {groupedMessages[dateKey].map((item) => {
-          const isCurrentUser = item.sender === "currentUser"; // Check if the message is from the current user
-          return (
-            <View
-              key={item.id}
-              style={[
-                styles.messageContainer,
-                isCurrentUser
-                  ? styles.currentUserMessage
-                  : styles.otherUserMessage,
-              ]}
-            >
-              <Text
+        {groupedMessages[dateKey]
+          .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+          .map((item) => {
+            const isCurrentUser =
+              item.user?.id === currentUser.id || item.sender === "currentUser";
+            return (
+              <View
+                key={item.id}
                 style={[
-                  styles.messageText,
-                  { color: isCurrentUser ? "#fff" : "#333" },
+                  styles.messageContainer,
+                  isCurrentUser
+                    ? styles.currentUserMessage
+                    : styles.otherUserMessage,
                 ]}
               >
-                {item.text}
-              </Text>
-              <Text
-                style={[
-                  styles.messageText,
-                  { color: isCurrentUser ? "#fff" : "#333" },
-                ]}
-              >
-                Pick-up: {item.pickup}
-              </Text>
-              <Text
-                style={[
-                  styles.messageText,
-                  { color: isCurrentUser ? "#fff" : "#333" },
-                ]}
-              >
-                Drop-off: {item.dropoff}
-              </Text>
-              <Text
-                style={[
-                  styles.messageText,
-                  { color: isCurrentUser ? "#fff" : "#333" },
-                ]}
-              >
-                Amount paid: ₦{item.amount}
-              </Text>
-              <Text
-                style={[
-                  styles.messageText,
-                  { color: isCurrentUser ? "#fff" : "#333" },
-                ]}
-              >
-                Errand status: PENDING
-              </Text>
-              <Text style={styles.messageTime}>
-                {formatTime(item.timestamp)}
-              </Text>
-            </View>
-          );
-        })}
+                <Text
+                  style={[
+                    styles.messageText,
+                    { color: isCurrentUser ? "#fff" : "#333" },
+                  ]}
+                >
+                  New Errand
+                </Text>
+                <Text
+                  style={[
+                    styles.messageText,
+                    { color: isCurrentUser ? "#fff" : "#333" },
+                  ]}
+                >
+                  Item to pickup: {item.item}
+                </Text>
+                <Text
+                  style={[
+                    styles.messageText,
+                    { color: isCurrentUser ? "#fff" : "#333" },
+                  ]}
+                >
+                  Pickup Location: {item.pickup_location}
+                </Text>
+                <Text
+                  style={[
+                    styles.messageText,
+                    { color: isCurrentUser ? "#fff" : "#333" },
+                  ]}
+                >
+                  Dropoff Location: {item.drop_off_location}
+                </Text>
+                <Text
+                  style={[
+                    styles.messageText,
+                    { color: isCurrentUser ? "#fff" : "#333" },
+                  ]}
+                >
+                  Amount paid: ₦{item.price}
+                </Text>
+                <Text
+                  style={[
+                    styles.messageText,
+                    { color: isCurrentUser ? "#fff" : "#333" },
+                  ]}
+                >
+                  Errand status: {item.status_display}
+                </Text>
+                <Text style={styles.messageTime}>
+                  {formatTime(item.created_at || item.timestamp)}
+                </Text>
+              </View>
+            );
+          })}
       </View>
     ));
   };
@@ -329,33 +389,47 @@ const ChatScreen = ({ route }) => {
             {rider.first_name} {rider.last_name}
           </Text>
         </View>
-        <ScrollView style={{ marginHorizontal: 10 }}>
+        <ScrollView style={{ marginHorizontal: 10 }} ref={scrollViewRef}>
           {renderMessages()}
         </ScrollView>
-        <View style={styles.inputContainer}>
-          {/* <TextInput
+        {/* <View style={styles.inputContainer}> */}
+        {/* <TextInput
             style={styles.input}
             value={message}
             onChangeText={setMessage}
             placeholder="Type a message..."
           /> */}
-          {/* <TouchableOpacity
+        {/* <TouchableOpacity
             style={styles.sendButton}
             onPress={handleSendMessage}
           >
             <Text style={styles.sendButtonText}>Send</Text>
           </TouchableOpacity> */}
-          {/* <TouchableOpacity style={styles.callButton} onPress={handleCallRider}>
+        {/* <TouchableOpacity style={styles.callButton} onPress={handleCallRider}>
             <Text style={styles.callButtonText}>Call {rider.first_name}</Text>
           </TouchableOpacity> */}
-        </View>
+        {/* </View> */}
 
-        <View style={{ paddingHorizontal: 10, marginBottom: 10 }}>
-          <LoadingButton
-            title={`Call ${rider.first_name}`}
-            onPress={handleCallRider}
-          />
-          <LoadingButton title={"Start Errand"} onPress={openBottomSheet} />
+        <View
+          style={{
+            flexDirection: "row",
+            paddingHorizontal: 10,
+            marginBottom: 10,
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 20,
+          }}
+        >
+          <View style={{ flex: 1 }}>
+            <LoadingButton
+              title={`Call ${rider.first_name}`}
+              onPress={handleCallRider}
+              icon={<Ionicons name="call-outline" size={24} color="white" />}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <OutlinedButton title={"Start Errand"} onPress={openBottomSheet} />
+          </View>
         </View>
       </SafeAreaView>
 
@@ -372,7 +446,14 @@ const ChatScreen = ({ route }) => {
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
               >
                 <Text style={styles.sheetTitle}>Start an Errand</Text>
-                <Text style={{ marginTop: 20 }}>Pickup Location</Text>
+                <Text style={{ marginTop: 20 }}>Item to Pickup</Text>
+                <TextInput
+                  style={styles.bottomSheetInput}
+                  placeholder="Item to pickup"
+                  value={item}
+                  onChangeText={(text) => setItem(text)}
+                />
+                <Text style={{}}>Pickup Location</Text>
                 <TextInput
                   style={styles.bottomSheetInput}
                   placeholder="Pickup Location"
@@ -462,12 +543,12 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     maxWidth: "75%",
-    borderRadius: 15,
-    padding: 10,
+    borderRadius: 10,
+    padding: 15,
     marginVertical: 5,
   },
   currentUserMessage: {
-    backgroundColor: "#28a745",
+    backgroundColor: "#007BFF",
     alignSelf: "flex-end",
   },
   otherUserMessage: {
@@ -519,7 +600,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   bottomSheet: {
-    height: 450,
+    height: 500,
     backgroundColor: "#ffffff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -558,6 +639,16 @@ const styles = StyleSheet.create({
     color: "#333",
     marginTop: 5,
     textAlign: "right",
+  },
+  emptyMessageContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  emptyMessageText: {
+    fontSize: 16,
+    color: "#888",
   },
 });
 

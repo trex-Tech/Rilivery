@@ -4,9 +4,10 @@ import {
   Text,
   ActivityIndicator,
   StyleSheet,
+  View,
 } from "react-native";
 
-const LoadingButton = ({ onPress, title, loading, disabled }) => {
+const LoadingButton = ({ onPress, title, loading, disabled, icon }) => {
   return (
     <TouchableOpacity
       style={[
@@ -20,7 +21,17 @@ const LoadingButton = ({ onPress, title, loading, disabled }) => {
       {loading ? (
         <ActivityIndicator size="small" color="#ffffff" />
       ) : (
-        <Text style={styles.buttonText}>{title}</Text>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-evenly",
+            alignItems: "center",
+            gap: 10
+          }}
+        >
+          {icon}
+          <Text style={styles.buttonText}>{title}</Text>
+        </View>
       )}
     </TouchableOpacity>
   );
@@ -76,7 +87,7 @@ const outlinedStyles = StyleSheet.create({
     alignItems: "center",
     marginTop: 10,
     borderColor: "#007BFF",
-    borderWidth: 1
+    borderWidth: 1,
   },
   buttonDisabled: {
     backgroundColor: "#cccccc",

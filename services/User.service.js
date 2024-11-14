@@ -23,3 +23,9 @@ export const SendErrand = async (
 
   return res;
 };
+
+export const fetchRiderErrands = async (rider_id) => {
+  const res = await api.get(`/errands/user/${rider_id}/`);
+
+  return res;
+};

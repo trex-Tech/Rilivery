@@ -16,6 +16,7 @@ import { FetchAllOnlineRiders } from "../../services/User.service";
 import { ActivityIndicator } from "react-native-paper";
 import { RefreshControl, ScrollView } from "react-native-gesture-handler";
 import { Logout } from "../../services/Auth.service";
+import { SOCKET_URL } from "../../config";
 
 const ridersData = [
   {
@@ -49,11 +50,43 @@ const ridersData = [
 ];
 
 const HomeScreen = ({ navigation }) => {
-  const { setIsAuthenticated, setUserType } = useContext(GlobalContext);
+  const { setIsAuthenticated, setUserType, accessToken } =
+    useContext(GlobalContext);
   const refRBSheet = useRef();
   const [riders, setRiders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  const errandSocket = new WebSocket(`${SOCKET_URL}/?token=${accessToken}`);
+
+  useEffect(() => {
+    if (!accessToken) {
+      console.log("❌️ User Socket Server: No Token Provided..");
+      return;
+    }
+
+    errandSocket.onopen = () => {
+      console.log("⚡️ User Socket Server Connected.");
+    };
+
+    errandSocket.onclose = () => {
+      console.log("❌️ User Socket Server Disconnected.");
+    };
+
+    errandSocket.onerror = (error) => {
+      console.log("⚠️ User Socket Server Error: ", error);
+    };
+
+    errandSocket.onmessage = (event) => {
+      console.log("event:::", event.data);
+      const newErrand = JSON.parse(event.data);
+      setErrands((prevErrands) => [newErrand, ...prevErrands]);
+    };
+
+    return () => {
+      errandSocket.close();
+    };
+  }, [accessToken]);
 
   const onRefresh = async () => {
     setRefreshing(true);

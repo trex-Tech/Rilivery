@@ -2,7 +2,7 @@ import { Image, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import OnboardImage from "../assets/piklup-onboard.png";
 import LoadingButton, { OutlinedButton } from "../components/Button";
 
-const Onboarding = () => {
+const Onboarding = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <Image source={OnboardImage} style={styles.image} />
@@ -38,14 +38,20 @@ const Onboarding = () => {
           justifyContent: "space-between",
           alignItems: "center",
           gap: 20,
-          marginTop: 54
+          marginTop: 54,
         }}
       >
         <View style={{ flex: 1 }}>
-          <LoadingButton title={"Create Account"} />
+          <LoadingButton
+            title={"Create Account"}
+            onPress={() => navigation.navigate("SignUp")}
+          />
         </View>
         <View style={{ flex: 1 }}>
-          <OutlinedButton title={"Login"} />
+          <OutlinedButton
+            title={"Login"}
+            onPress={() => navigation.navigate("Login")}
+          />
         </View>
       </View>
     </SafeAreaView>

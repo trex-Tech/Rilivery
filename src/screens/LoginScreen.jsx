@@ -70,6 +70,12 @@ const LoginScreen = ({ navigation }) => {
               "rider_available",
               JSON.stringify(profile_res.data.data.is_online)
             );
+            if (profile_res.data.data) {
+              await AsyncStorage.setItem(
+                "user_data",
+                JSON.stringify(profile_res.data.data)
+              );
+            }
           }
 
           // console.log("Token saved::", res.data.data.access);

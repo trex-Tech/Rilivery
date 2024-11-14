@@ -9,6 +9,8 @@ import {
   Image,
   Switch,
   Alert,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import AntDesign from "@expo/vector-icons/AntDesign";
@@ -21,6 +23,7 @@ import {
   ToggleAvailability,
 } from "../../services/Rider.service";
 import { SOCKET_URL } from "../../config";
+import { FetchAllErrands } from "../../services/Global.service";
 
 const RiderHomePage = () => {
   const [activeTab, setActiveTab] = useState("availableErrands"); // Default tab
@@ -36,6 +39,65 @@ const RiderHomePage = () => {
   } = useContext(GlobalContext);
   const [verified, setVerified] = useState(false);
   const [isAvailable, setIsAvailable] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errands, setErrands] = useState([]);
+
+  const errandSocket = new WebSocket(`${SOCKET_URL}/?token=${accessToken}`);
+
+  const fetchErrands = async () => {
+    setLoading(true);
+
+    const res = await FetchAllErrands();
+
+    if (res.data.status === "success") {
+      // Sort errands by createdAt in descending order
+      const sortedErrands = res.data.data.errands.sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+      setErrands(sortedErrands);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchErrands();
+  }, []);
+
+  useEffect(() => {
+    if (!accessToken) {
+      console.log("❌️ Rider Socket Server: No Token Provided.");
+      return;
+    }
+
+    errandSocket.onopen = () => {
+      console.log("⚡️ Rider Socket Server Connected.");
+    };
+
+    errandSocket.onclose = () => {
+      console.log("❌️ Rider Socket Server Disconnected.");
+    };
+
+    errandSocket.onerror = (error) => {
+      console.log("⚠️ Rider Socket Server Error: ", error);
+    };
+
+    errandSocket.onmessage = (event) => {
+      // const errand = JSON.parse(event.data);
+      // if (event.data.action === "accept_errand") {
+      //   console.log("event with accept errand success:::", event.data);
+      //   const newErrand = JSON.parse(event.data);
+      //   setErrands((prevErrands) => [newErrand, ...prevErrands]);
+      // } else {
+      console.log("event:::", event.data);
+      const newErrand = JSON.parse(event.data);
+      setErrands((prevErrands) => [newErrand, ...prevErrands]);
+      // }
+    };
+
+    return () => {
+      errandSocket.close();
+    };
+  }, [accessToken]);
 
   const getRiderCurrentProfile = async () => {
     const res = await GetProfileDtails();
@@ -54,6 +116,7 @@ const RiderHomePage = () => {
     setErrandListRefresh(true);
     getRiderAvailability();
     getRiderCurrentProfile();
+    fetchErrands();
     setErrandListRefresh(false);
   };
 
@@ -77,7 +140,13 @@ const RiderHomePage = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "availableErrands":
-        return <AvailableErrands accessToken={accessToken} />;
+        return (
+          <AvailableErrands
+            accessToken={accessToken}
+            errands={errands}
+            errandSocket={errandSocket}
+          />
+        );
       case "messages":
         return <Messages />;
       default:
@@ -104,7 +173,12 @@ const RiderHomePage = () => {
               style={styles.switch}
             />
           </View>
-          <View style={styles.contentContainer}>{renderContent()}</View>
+
+          {loading ? (
+            <ActivityIndicator />
+          ) : (
+            <View style={styles.contentContainer}>{renderContent()}</View>
+          )}
         </ScrollableContainer>
       ) : (
         <ScrollableContainer
@@ -151,62 +225,30 @@ const RiderHomePage = () => {
 };
 
 // Example components for each tab
-const AvailableErrands = ({ accessToken }) => {
-  const [loading, setLoading] = useState(false);
-  const [errands, setErrands] = useState([]);
-
-  const errandSocket = new WebSocket(`${SOCKET_URL}/?token=${accessToken}`);
-
-  useEffect(() => {
-    if (!accessToken) {
-      console.log("❌️ Rider Socket Server: No Token Provided.");
-      return;
-    }
-
-    errandSocket.onopen = () => {
-      console.log("⚡️ Rider Socket Server Connected.");
-    };
-
-    errandSocket.onclose = () => {
-      console.log("❌️ Rider Socket Server Disconnected.");
-    };
-
-    errandSocket.onerror = (error) => {
-      console.log("⚠️ Rider Socket Server Error: ", error);
-    };
-
-    errandSocket.onmessage = (event) => {
-      console.log("event:::", event.data);
-      setErrands((prevErrands) => [...prevErrands, JSON.parse(event.data)]);
-      // const data = JSON.parse(event.data); // Parse the incoming message
-      // console.log("message from socket:::", data);
-
-      // Assuming the data contains an errand object
-      // if (data.type === "new_errand") {
-      //   // Check the type of message
-      //   setErrands((prevErrands) => [...prevErrands, data.errand]); // Update state with new errand
-      // }
-    };
-
-    return () => {
-      errandSocket.close();
-    };
-  }, [accessToken]);
-
+const AvailableErrands = ({ errands, errandSocket }) => {
   const renderErrandItem = ({ item }) => {
-    console.log("errands:::", errands);
+    // console.log("item:::", item);
+    const AcceptErrand = async () => {
+      const payload = {
+        action: "accept_errand",
+        errand_id: item.id,
+      };
+      errandSocket.send(JSON.stringify(payload));
+    };
     return (
       <TouchableOpacity
         style={styles.errandCard}
         // onPress={() => handleAcceptErrand(item)}
       >
         <View style={styles.errandDetails}>
-          <Text style={styles.errandTitle}>Errand Owner: Kelly Owoju</Text>
-          <Text style={styles.errandTitle}>Errand Item: My Laptop</Text>
+          <Text style={styles.errandTitle}>
+            Errand Owner: {item.user.full_name}
+          </Text>
+          <Text style={styles.errandTitle}>Errand Item: {item.item}</Text>
           <Text style={styles.errandTitle}>From: {item.pickup_location}</Text>
           <Text style={styles.errandTitle}>To: {item.drop_off_location}</Text>
 
-          <TouchableOpacity style={styles.acceptButton}>
+          <TouchableOpacity style={styles.acceptButton} onPress={AcceptErrand}>
             <Text style={styles.acceptButtonText}>Accept Errand</Text>
           </TouchableOpacity>
         </View>
