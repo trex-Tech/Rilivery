@@ -24,6 +24,7 @@ import {
 } from "../../services/Rider.service";
 import { SOCKET_URL } from "../../config";
 import { FetchAllErrands } from "../../services/Global.service";
+import LoadingButton from "../components/Button";
 
 const RiderHomePage = () => {
   const [activeTab, setActiveTab] = useState("availableErrands"); // Default tab
@@ -63,6 +64,28 @@ const RiderHomePage = () => {
     fetchErrands();
   }, []);
 
+  const AcceptErrandAction = (item_id) => {
+    // console.log("Access_token in action:::", accessToken);
+    const payload = {
+      action: "accept_errand",
+      errand_id: item_id,
+    };
+    if (errandSocket.readyState === 1) {
+      errandSocket.send(JSON.stringify(payload));
+    }
+  };
+
+  const CompleteErrandAction = (item_id) => {
+    // console.log("Access_token in action:::", accessToken);
+    const payload = {
+      action: "complete_errand",
+      errand_id: item_id,
+    };
+    if (errandSocket.readyState === 1) {
+      errandSocket.send(JSON.stringify(payload));
+    }
+  };
+
   useEffect(() => {
     if (!accessToken) {
       console.log("❌️ Rider Socket Server: No Token Provided.");
@@ -82,16 +105,22 @@ const RiderHomePage = () => {
     };
 
     errandSocket.onmessage = (event) => {
-      // const errand = JSON.parse(event.data);
-      // if (event.data.action === "accept_errand") {
-      //   console.log("event with accept errand success:::", event.data);
-      //   const newErrand = JSON.parse(event.data);
-      //   setErrands((prevErrands) => [newErrand, ...prevErrands]);
-      // } else {
-      console.log("event:::", event.data);
-      const newErrand = JSON.parse(event.data);
-      setErrands((prevErrands) => [newErrand, ...prevErrands]);
-      // }
+      const errand = JSON.parse(event.data);
+      // console.log("errand:::", errand);
+      if (errand.action === "accept_errand") {
+        // console.log("There's an actionnnnn:::", errand.data);
+        fetchErrands();
+        const newErrand = errand;
+        console.log("Errand data:::", newErrand);
+        // setErrands((prevErrands) => [newErrand, ...prevErrands]);
+      } else if (errand.action === "complete_errand") {
+        console.log("There's an actionnnnn:::", errand.data);
+        fetchErrands();
+      } else {
+        console.log("event data:::", event.data);
+        const newErrand = JSON.parse(event.data);
+        setErrands((prevErrands) => [newErrand, ...prevErrands]);
+      }
     };
 
     return () => {
@@ -145,6 +174,8 @@ const RiderHomePage = () => {
             accessToken={accessToken}
             errands={errands}
             errandSocket={errandSocket}
+            acceptErrandAction={AcceptErrandAction}
+            completeErrandAction={CompleteErrandAction}
           />
         );
       case "messages":
@@ -225,16 +256,14 @@ const RiderHomePage = () => {
 };
 
 // Example components for each tab
-const AvailableErrands = ({ errands, errandSocket }) => {
+const AvailableErrands = ({
+  errands,
+  acceptErrandAction,
+  completeErrandAction,
+}) => {
   const renderErrandItem = ({ item }) => {
     // console.log("item:::", item);
-    const AcceptErrand = async () => {
-      const payload = {
-        action: "accept_errand",
-        errand_id: item.id,
-      };
-      errandSocket.send(JSON.stringify(payload));
-    };
+
     return (
       <TouchableOpacity
         style={styles.errandCard}
@@ -248,9 +277,42 @@ const AvailableErrands = ({ errands, errandSocket }) => {
           <Text style={styles.errandTitle}>From: {item.pickup_location}</Text>
           <Text style={styles.errandTitle}>To: {item.drop_off_location}</Text>
 
-          <TouchableOpacity style={styles.acceptButton} onPress={AcceptErrand}>
-            <Text style={styles.acceptButtonText}>Accept Errand</Text>
-          </TouchableOpacity>
+          {/* <TouchableOpacity
+            style={styles.acceptButton}
+            onPress={() => {
+              if (item.status === "accepted") {
+                completeErrandAction(item.id);
+              } else {
+                acceptErrandAction(item.id);
+              }
+            }}
+            disabled={item.status === "completed"}
+          >
+            <Text style={styles.acceptButtonText}>
+              {item.status === "accepted"
+                ? "Complete"
+                : item.status === "completed"
+                ? "Completed"
+                : "Accept"}
+            </Text>
+          </TouchableOpacity> */}
+          <LoadingButton
+            title={
+              item.status === "accepted"
+                ? "Complete"
+                : item.status === "completed"
+                ? "Completed"
+                : "Accept"
+            }
+            onPress={() => {
+              if (item.status === "accepted") {
+                completeErrandAction(item.id);
+              } else {
+                acceptErrandAction(item.id);
+              }
+            }}
+            disabled={item.status === "completed"}
+          />
         </View>
       </TouchableOpacity>
     );
@@ -281,7 +343,7 @@ const AvailableErrands = ({ errands, errandSocket }) => {
         <FlatList
           data={errands}
           renderItem={renderErrandItem}
-          keyExtractor={(item) => item.errand_id}
+          keyExtractor={(item, index) => index}
           contentContainerStyle={styles.errandList}
         />
       )}

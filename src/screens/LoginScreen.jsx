@@ -20,7 +20,7 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({}); // State to hold error messages
   const [loading, setLoading] = useState(false);
-  const { setIsAuthenticated, setUserType, setRiderStatus } =
+  const { setIsAuthenticated, setUserType, setRiderStatus, setAccessToken } =
     useContext(GlobalContext);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -52,6 +52,8 @@ const LoginScreen = ({ navigation }) => {
           setUserType(res.data.data.user_type);
           setRiderStatus(res.data.data.rider_status);
           await AsyncStorage.setItem("access_token", res.data.data.access);
+          setAccessToken(res.data.data.access);
+          console.log("Access_token in login:::", res.data.data.access);
           if (res.data.data.user_type) {
             await AsyncStorage.setItem("user_type", res.data.data.user_type);
           }

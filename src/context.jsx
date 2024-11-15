@@ -13,7 +13,7 @@ export const GlobalProvider = ({ children }) => {
   const getAccessToken = async () => {
     const access_token = await AsyncStorage.getItem("access_token");
 
-    // console.log("Access_token:::", access_token);
+    console.log("Access_token in context:::", access_token);
     if (access_token) {
       setIsAuthenticated(true);
       setAccessToken(access_token);
@@ -64,9 +64,12 @@ export const GlobalProvider = ({ children }) => {
   useEffect(() => {
     getRiderStatus();
     getUserType();
-    getAccessToken();
     getRiderAvailability();
   }, []);
+
+  useEffect(() => {
+    getAccessToken();
+  }, [accessToken]);
 
   return (
     <GlobalContext.Provider
@@ -82,6 +85,7 @@ export const GlobalProvider = ({ children }) => {
         getRiderAvailability,
         accessToken,
         setAccessToken,
+        getAccessToken,
       }}
     >
       {children}

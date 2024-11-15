@@ -57,13 +57,14 @@ const HomeScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const errandSocket = new WebSocket(`${SOCKET_URL}/?token=${accessToken}`);
-
   useEffect(() => {
+    const errandSocket = new WebSocket(`${SOCKET_URL}/?token=${accessToken}`);
     if (!accessToken) {
       console.log("❌️ User Socket Server: No Token Provided..");
       return;
     }
+
+    console.log("Access token:::", accessToken);
 
     errandSocket.onopen = () => {
       console.log("⚡️ User Socket Server Connected.");
@@ -78,9 +79,9 @@ const HomeScreen = ({ navigation }) => {
     };
 
     errandSocket.onmessage = (event) => {
-      console.log("event:::", event.data);
+      console.log("event from home:::", event.data);
       const newErrand = JSON.parse(event.data);
-      setErrands((prevErrands) => [newErrand, ...prevErrands]);
+      setErrands((prevErrands) => [...prevErrands, newErrand]);
     };
 
     return () => {
